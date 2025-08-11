@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/lib/apiClient';
+import { apiFetch } from '@/lib/api';
 
 export default function DashboardPage() {
   const [messages, setMessages] = useState([]);
@@ -12,7 +12,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const res = await apiClient('/messages');
+        const res = await apiFetch('/messages');
         if (!res.ok) {
           throw new Error('Unauthorized');
         }
