@@ -1,0 +1,32 @@
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: rails-react-app
+build:
+  artifacts:
+    - image: frontend
+      context: frontend
+      docker:
+        dockerfile: Dockerfile.dev 
+      sync:
+        manual:
+          - src: '**/*.tsx'
+            dest: .
+          - src: '**/*.ts'
+            dest: .        
+    - image: backend
+      context: backend
+      docker:
+        dockerfile: Dockerfile
+  local:
+    push: false
+manifests:
+  rawYaml:
+    - k8s/namespace.yaml
+    - k8s/frontend/deployment.yaml
+    - k8s/frontend/service.yaml
+    - k8s/backend/deployment.yaml
+    - k8s/backend/service.yaml
+    - k8s/ingress.yaml
+deploy:
+  kubectl: {}

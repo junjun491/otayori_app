@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  title: MyString
+  content: MyText
+  status: 1
+  published_at: 2025-08-03 07:48:32
+  deadline: 2025-08-03
+  classroom: one
+  teacher: one
+
+two:
+  title: MyString
+  content: MyText
+  status: 1
+  published_at: 2025-08-03 07:48:32
+  deadline: 2025-08-03
+  classroom: two
+  teacher: two

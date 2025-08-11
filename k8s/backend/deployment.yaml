@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: backend
+          imagePullPolicy: Never          
+          env:
+            - name: DATABASE_HOST
+              value: host.docker.internal  # MacローカルDBを使う想定
+            - name: DATABASE_USER
+              value: appuser
+            - name: DATABASE_PASSWORD
+              value: password
+            - name: DATABASE_NAME
+              value: app_db
+          ports:
+            - containerPort: 3000

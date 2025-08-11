@@ -1,0 +1,85 @@
+# ===== Global (OS / Editors) =====
+.DS_Store
+.vscode/
+.idea/
+
+# ===== Env files =====
+.env
+.env.local
+.env.*.local
+*.env
+frontend/.env.local
+backend/.env
+
+# ===== Frontend (Next.js) =====
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+# 現状の方針を踏襲：フロントの lockfile をコミットしない
+frontend/yarn.lock
+# Storybook
+frontend/*storybook.log
+frontend/storybook-static/
+
+# ===== Backend (Rails) =====
+# logs / tmp / storage
+backend/log/*
+!backend/log/.keep
+backend/tmp/*
+!backend/tmp/.keep
+backend/storage/*
+!backend/storage/.keep
+
+# Bundler / vendor
+backend/vendor/
+backend/vendor/bundle
+backend/.bundle/
+
+# Rails assets / packs
+backend/public/assets
+backend/public/packs
+backend/public/packs-test
+
+# Credentials / secrets
+backend/config/master.key
+backend/config/credentials.yml.enc
+backend/.secrets
+
+# Misc ruby / rails artifacts
+backend/.byebug_history
+backend/*.pid
+backend/*.rbc
+backend/*.sassc
+backend/*.swp
+backend/db/*.sqlite3*
+backend/db/*.sqlite3-journal
+
+# (念のため) Backend 側の Node 生成物
+backend/node_modules/
+
+# ===== Common build / test artifacts =====
+coverage/
+dist/
+.pnpm-store/
+
+# ===== Extra (optional) =====
+# Frontend caches
+frontend/.next/cache/
+frontend/.swc/
+frontend/.turbo/
+frontend/.vercel/
+frontend/.eslintcache
+
+# Global temp/logs
+.eslintcache
+*.log
+
+# Rails test status
+backend/.rspec_status
+
+# Not used
+backend/.kamal/
