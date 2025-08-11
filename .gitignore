@@ -83,3 +83,4 @@ backend/.rspec_status
 
 # Not used
 backend/.kamal/
+backup_*.tar.gz
