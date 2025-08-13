@@ -1,45 +1,75 @@
 'use client';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
-import { setToken } from '@/lib/auth'; // ← localStorage に保存するやつ
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getToken, setToken, safeNextParam } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const sp = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const nextParam = (() => {
-    const raw = sp.get('next') || '';
-    try {
-      const decoded = decodeURIComponent(raw);
-      return decoded.startsWith('/login') ? '' : decoded; // ループ防止
-    } catch { return ''; }
-  })();
+  const [err, setErr] = useState<string | null>(null);
 
-  const onSubmit = async (e: React.FormEvent) => {
+  // ✅ 既ログインならスキップ
+  useEffect(() => {
+    const t = getToken();
+    if (t) {
+      const next = safeNextParam('/teacher/dashboard');
+      router.replace(next);
+    }
+  }, [router]);
+
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch('http://localhost:3001/teachers/sign_in', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ teacher: { email, password } })
-    });
+    setErr(null);
 
-    if (!res.ok) { alert('ログイン失敗'); return; }
+    try {
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL!;
+      const res = await fetch(`${base}/teachers/sign_in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // ※ ここはあなたのAPI仕様に合わせて。現状シンプルJSONでOK
+        body: JSON.stringify({ teacher: { email, password } }),
+      });
 
-    // Authorization をヘッダから保存（バックエンドが付与している前提）
-    const token = res.headers.get('Authorization');
-    if (token) setToken(token);
+      if (!res.ok) {
+        setErr('メールまたはパスワードが正しくありません。');
+        return;
+      }
 
-    router.replace(nextParam || '/teacher/dashboard');
-  };
+      // レスポンスヘッダから Authorization を取得して保存
+      const auth = res.headers.get('Authorization');
+      if (auth) {
+        setToken(auth); // "Bearer ..." で保存（auth.tsで自動補正あり）
+      }
+
+      const next = safeNextParam('/teacher/dashboard');
+      router.replace(next);
+    } catch (e) {
+      setErr('通信に失敗しました。しばらくしてから再度お試しください。');
+    }
+  }
 
   return (
     <main style={{ padding: 24 }}>
       <h1>ログイン</h1>
-      <form onSubmit={onSubmit}>
-        <input placeholder="email" value={email} onChange={e=>setEmail(e.target.value)} />
-        <input placeholder="password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
-        <button type="submit">ログイン</button>
+      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12, maxWidth: 360 }}>
+        <input
+          type="email"
+          placeholder="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit">サインイン</button>
+        {err && <p style={{ color: 'crimson' }}>{err}</p>}
       </form>
     </main>
   );

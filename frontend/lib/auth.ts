@@ -29,5 +29,6 @@ export function setToken(raw: string) {
 }
 
 export function clearToken() {
+  if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_KEY);
 }
