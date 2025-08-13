@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::API
   include Devise::Controllers::Helpers
   include Devise::Controllers::ScopedViews
+  include JwtAuthenticatable
     before_action :configure_permitted_parameters, if: :devise_controller?
 
     protected

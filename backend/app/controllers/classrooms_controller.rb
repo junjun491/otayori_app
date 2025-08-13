@@ -1,5 +1,5 @@
 class ClassroomsController < ApplicationController
-    before_action :authenticate_teacher!
+    before_action :authenticate_api!
   
     def show
       classroom = current_teacher.classroom

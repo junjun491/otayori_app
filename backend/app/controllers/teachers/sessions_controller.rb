@@ -1,29 +1,30 @@
 module Teachers
-    class SessionsController < Devise::SessionsController
-      respond_to :json
-      skip_before_action :authenticate_teacher!, only: [ :create, :destroy ], raise: false
+  class SessionsController < Devise::SessionsController
+    respond_to :json
 
-      private
+    def create
+      email = params.dig(:teacher, :email)
+      password = params.dig(:teacher, :password)
 
-      def respond_with(resource, _opts = {})
-        render json: {
-          status: { code: 200, message: "\u30ED\u30B0\u30A4\u30F3\u306B\u6210\u529F\u3057\u307E\u3057\u305F\u3002" },
-          data: resource
-        }, status: :ok
+      teacher = Teacher.find_for_database_authentication(email: email)
+      unless teacher&.valid_password?(password)
+        return render json: { errors: [ "Invalid email or password" ] }, status: :unauthorized
       end
 
-      def respond_to_on_destroy
-        if current_teacher
-          render json: {
-            status: 200,
-            message: "\u30ED\u30B0\u30A2\u30A6\u30C8\u306B\u6210\u529F\u3057\u307E\u3057\u305F\u3002"
-          }, status: :ok
-        else
-          render json: {
-            status: 401,
-            message: "\u30ED\u30B0\u30A2\u30A6\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002"
-          }, status: :unauthorized
-        end
-      end
+      token = ::JwtIssuer.issue(teacher.id)
+      response.set_header("Authorization", "Bearer #{token}")
+
+      render json: {
+        data: {
+          id: teacher.id,
+          name: teacher.name,
+          email: teacher.email
+        }
+      }, status: :ok
     end
+
+    def destroy
+      render json: { message: "logged out" }, status: :ok
+    end
+  end
 end
