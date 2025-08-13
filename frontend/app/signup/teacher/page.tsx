@@ -13,6 +13,7 @@ import {
   Alert
 } from '@mui/material'
 import { useState } from 'react'
+import { setToken } from '@/lib/auth';
 
 const schema = z.object({
   name: z.string().min(1, '名前は必須です'),
@@ -53,11 +54,25 @@ export default function TeacherSignupPage() {
       })
 
       if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.message || '登録に失敗しました')
+        let msg = '登録に失敗しました';
+        try {
+          const j = await res.json();
+          if (j?.errors) msg = Array.isArray(j.errors) ? j.errors.join('\n') : String(j.errors);
+          else if (j?.message) msg = String(j.message);
+        } catch {}
+        throw new Error(msg);
+      }
+      const auth = res.headers.get('Authorization');
+      if (auth) {
+        setToken(auth); // apiFetch がそのまま Authorization に載せる実装でOK
+        // 「next」クエリがあればそこへ、無ければダッシュボードへ
+        const next = '/teacher/dashboard'; // safeNextParam(next) を使っているならそれでOK
+        router.replace(next);
+      } else {
+        // 想定外（サーバのヘッダ漏れ）時はログイン画面にフォールバック
+        router.replace('/login');
       }
 
-      router.push('/login')
     } catch (err: any) {
       setError(err.message)
     }

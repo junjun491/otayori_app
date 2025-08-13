@@ -6,6 +6,10 @@ class Teachers::RegistrationsController < Devise::RegistrationsController
     build_resource(sign_up_params)
 
     if resource.save
+      # ★ サインアップ成功時にJWT発行 → Authorizationヘッダへ
+      token = ::JwtIssuer.issue(resource.id)
+      response.set_header("Authorization", "Bearer #{token}")
+
       render json: {
         data: { id: resource.id, name: resource.name, email: resource.email }
       }, status: :created
