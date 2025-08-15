@@ -9,14 +9,18 @@ Rails.application.routes.draw do
   devise_for :students,
              defaults: { format: :json },
              controllers: {
-               sessions: "students/sessions"
+               sessions: "students/sessions",
+               registrations: "students/registrations"
              }
 
   namespace :teachers do
     get "profile", to: "profiles#show"
   end
 
-  resources :classrooms, only: [:index, :show, :create] do
-    resources :invitations, only: [:create, :index], module: :classrooms
+  resources :classrooms, only: [ :index, :show, :create ] do
+    resources :invitations, only: [ :create, :index, :show ], module: :classrooms
   end
+
+  get  "/invitations/verify", to: "invitations#verify"
+  post "/signups",            to: "signups#create"
 end

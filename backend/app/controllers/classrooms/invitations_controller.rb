@@ -29,6 +29,28 @@ class Classrooms::InvitationsController < ApplicationController
       }, status: :created
     end
 
+    def show
+      inv = @classroom.invitations.find(params[:id])
+      payload = inv.as_json(only: [ :id, :email, :used, :expires_at, :created_at ])
+      if inv.usable?
+        base = Rails.application.config_for(:frontend)["base_url"]
+        payload[:signup_url] = "#{base}/signup?token=#{inv.token}&classroom_id=#{inv.classroom_id}"
+      end
+      response.set_header("Cache-Control", "no-store")
+      render json: { data: payload }
+    end
+
+    def verify
+      inv = Invitation.find_by(token: params[:token], classroom_id: params[:classroom_id])
+      valid = inv.present? && inv.usable?
+      reason =
+        if inv.nil? then "not_found"
+        elsif inv.used then "used"
+        elsif inv.expires_at&.past? then "expired"
+        else nil end
+      render json: { data: { valid:, reason: } }
+    end
+
     private
     def set_classroom
       @classroom = current_teacher.classrooms.find(params[:classroom_id])

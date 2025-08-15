@@ -1,18 +1,39 @@
+# app/models/invitation.rb
 class Invitation < ApplicationRecord
   belongs_to :classroom
 
-  before_create :issue_token
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  before_create :generate_token, :set_default_expiry
+  after_commit  :enqueue_invite_mail, on: :create
 
-  scope :available, -> { where(used: false).where("expires_at IS NULL OR expires_at > ?", Time.current) }
+  scope :usable, -> { where(used: false).where("expires_at IS NULL OR expires_at > ?", Time.current) }
 
-  def expired?
-    expires_at.present? && expires_at <= Time.current
+  validates :token, presence: true
+
+  def usable?
+    !used && (expires_at.nil? || expires_at.future?)
+  end
+
+  def mark_used!
+    update!(used: true, used_at: Time.current)
   end
 
   private
-  def issue_token
-    self.token = SecureRandom.urlsafe_base64(24)
+
+  # ★ 常に新規トークンを採番（外部からの値は無視）
+  def generate_token
+    5.times do
+      self.token = SecureRandom.urlsafe_base64(24)
+      break unless self.class.exists?(token: token)
+    end
+    token || (raise "TokenGenerationFailed")
+  end
+
+  def set_default_expiry
     self.expires_at ||= 7.days.from_now
+  end
+
+  def enqueue_invite_mail
+    return unless ENV["MAIL_REAL_SEND"] == "true"
+    InvitationMailer.invite(self).deliver_later(queue: :mailers)
   end
 end
