@@ -69,4 +69,17 @@ Rails.application.configure do
   # config.generators.apply_rubocop_autocorrect_after_generate!
   config.hosts << "myapp.local"
   Rails.application.config.active_record.migration_error = false
+
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+  address: "smtp.sendgrid.net",
+  port: 587,
+  user_name: "apikey",  # 固定文字列
+  password: ENV.fetch("SENDGRID_API_KEY", ""),
+  domain: "localhost",
+  authentication: :plain,
+  enable_starttls_auto: true
+  }
+  config.action_mailer.default_url_options = { host: "localhost", port: 3001 }
+  config.action_mailer.show_previews = true
 end

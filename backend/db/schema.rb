@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_03_093120) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_15_124711) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,13 +23,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_03_093120) do
   end
 
   create_table "invitations", force: :cascade do |t|
-    t.string "token"
-    t.string "email"
+    t.string "token", null: false
+    t.string "email", null: false
     t.bigint "classroom_id", null: false
-    t.boolean "used"
+    t.boolean "used", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "expires_at"
     t.index ["classroom_id"], name: "index_invitations_on_classroom_id"
+    t.index ["token"], name: "index_invitations_on_token", unique: true
   end
 
   create_table "jwt_denylists", force: :cascade do |t|

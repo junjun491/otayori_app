@@ -1,0 +1,8 @@
+default: &default
+  base_url: http://localhost:3000
+
+development:
+  <<: *default
+
+production:
+  base_url: https://your-frontend.example

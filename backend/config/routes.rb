@@ -16,6 +16,7 @@ Rails.application.routes.draw do
     get "profile", to: "profiles#show"
   end
 
-  resources :classrooms, only: [:show, :create, :update, :destroy]
-  resources :messages, only: [:create, :index, :show]
+  resources :classrooms, only: [:index, :show, :create] do
+    resources :invitations, only: [:create, :index], module: :classrooms
+  end
 end

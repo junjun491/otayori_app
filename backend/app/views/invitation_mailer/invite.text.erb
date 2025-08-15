@@ -1,0 +1,4 @@
+<%= @invitation.classroom.name %> に招待されています。
+以下のリンクからアカウント登録を完了してください（有効期限：<%= @invitation.expires_at&.strftime('%Y-%m-%d') %>）。
+
+<%= @signup_url %>
