@@ -1,6 +1,8 @@
 # app/controllers/classrooms/invitations_controller.rb
 class Classrooms::InvitationsController < ApplicationController
-    before_action :authenticate_teacher!
+  include JwtAuthenticatable
+
+    before_action :authenticate_api!
     before_action :set_classroom
 
     # GET /classrooms/:classroom_id/invitations
@@ -53,7 +55,7 @@ class Classrooms::InvitationsController < ApplicationController
 
     private
     def set_classroom
-      @classroom = current_teacher.classrooms.find(params[:classroom_id])
+      @classroom = Classroom.find_by!(id: params[:classroom_id], teacher_id: current_teacher.id)
     end
 
     def real_send?

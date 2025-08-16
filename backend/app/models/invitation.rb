@@ -2,8 +2,9 @@
 class Invitation < ApplicationRecord
   belongs_to :classroom
 
-  before_create :generate_token, :set_default_expiry
-  after_commit  :enqueue_invite_mail, on: :create
+  before_validation :generate_token, on: :create
+  before_create :set_default_expiry
+  after_commit :enqueue_invite_mail, on: :create
 
   scope :usable, -> { where(used: false).where("expires_at IS NULL OR expires_at > ?", Time.current) }
 
