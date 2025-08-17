@@ -18,9 +18,10 @@ Rails.application.routes.draw do
   end
 
   resources :classrooms, only: [ :index, :show, :create ] do
-    resources :invitations, only: [ :create, :index, :show ], module: :classrooms
+    resources :invitations, only: [ :create, :index, :show ], module: :classrooms do
+      member do
+        get :verify  # => /classrooms/:classroom_id/invitations/verify
+      end
+    end
   end
-
-  get  "/invitations/verify", to: "invitations#verify"
-  post "/signups",            to: "signups#create"
 end
