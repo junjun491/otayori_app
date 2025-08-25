@@ -6,10 +6,12 @@ class JwtIssuer
   ISS = "otayori_api"
   AUD = "otayori_frontend"
 
-  def self.issue(subject_id, exp: 24.hours.from_now)
+  # 現在はteacherとstudentのみがsubjectになる想定
+  def self.issue(subject, exp: 24.hours.from_now)
+    role = subject.class.name.demodulize.underscore
     payload = {
-      sub: "teacher:#{subject_id}",
-      iat: Time.now.to_i,
+      sub: "#{role}:#{subject.id}",
+      iat: Time.current.to_i,
       exp: exp.to_i,
       iss: ISS,
       aud: AUD

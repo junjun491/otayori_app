@@ -18,6 +18,10 @@ class Invitation < ApplicationRecord
     update!(used: true, used_at: Time.current)
   end
 
+  def expired?
+    expires_at.present? && Time.current >= expires_at
+  end
+
   private
 
   # ★ 常に新規トークンを採番（外部からの値は無視）

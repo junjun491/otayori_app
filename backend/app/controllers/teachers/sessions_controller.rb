@@ -11,7 +11,7 @@ module Teachers
         return render json: { errors: [ "Invalid email or password" ] }, status: :unauthorized
       end
 
-      token = ::JwtIssuer.issue(teacher.id)
+      token = ::JwtIssuer.issue(teacher)
       response.set_header("Authorization", "Bearer #{token}")
 
       render json: {

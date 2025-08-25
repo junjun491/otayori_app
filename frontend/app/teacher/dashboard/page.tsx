@@ -1,73 +1,88 @@
-// app/teacher/dashboard/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
-import { getToken } from '@/lib/auth';
+import { Container, Box, Typography, List, ListItem, ListItemText, Divider, Button, Alert } from '@mui/material';
 
-type Me = {
-  id: number;
-  name: string;
-  email: string;
-  // 必要に応じて追加
-};
+type Teacher = { id: number; name: string; email: string };
+type Classroom = { id: number; name: string };
+type Student = { id: number; name: string; email: string };
 
-export default function TeacherDashboard() {
-  const [me, setMe] = useState<Me | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
+export default function TeacherDashboardPage() {
+  const [teacher, setTeacher] = useState<Teacher | null>(null);
+  const [classroom, setClassroom] = useState<Classroom | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // 簡易ガード：トークン未保持ならログインへ
-    if (!getToken()) {
-      setLoading(false);
-      return;
-    }
-
     (async () => {
       try {
-        const res = await apiFetch('/teachers/profile'); // Authorization 自動付与 & 401共通処理
-        if (!res.ok) throw new Error('プロフィール取得に失敗しました');
-        const json = await res.json();
-        setMe(json.data as Me);
-      } catch (e: any) {
-        // apiFetch が 401 のときはすでにリダイレクトされる想定
-        setErr(e?.message || '読み込みに失敗しました');
-      } finally {
-        setLoading(false);
+        // 教師プロフィール（APIは適宜合わせてください）
+        const meRes = await apiFetch('/me'); // 例: { data: { teacher: {...} } }
+        const meBody = await meRes.json().catch(() => ({}));
+        setTeacher(meBody?.data?.teacher || meBody?.teacher || null);
+
+        // 教室（担任1クラス想定：先頭ひとつを採用）
+        const clsRes = await apiFetch('/classrooms');
+        const clsBody = await clsRes.json().catch(() => ({}));
+        const cls = (clsBody?.data && clsBody.data[0]) || clsBody?.[0] || null;
+        setClassroom(cls);
+
+        if (cls?.id) {
+          let list: Student[] = [];
+          const stRes = await apiFetch(`/classrooms/${cls.id}/students`);
+          if (stRes.ok) {
+            const stBody = await stRes.json().catch(() => ({}));
+            list = stBody?.data || stBody || [];
+          } else {
+            list = [];
+          }
+          setStudents(list);
+        }
+      } catch {
+        setError('ダッシュボード情報の取得に失敗しました');
       }
     })();
   }, []);
 
-  if (loading) {
-    return (
-      <main className="p-6">
-        <h1 className="text-xl font-bold mb-4">教師ダッシュボード</h1>
-        <p>読み込み中...</p>
-      </main>
-    );
-  }
-
   return (
-    <main className="p-6">
-      <h1 className="text-xl font-bold mb-4">教師ダッシュボード</h1>
+    <Container maxWidth="md">
+      <Box mt={6}>
+        <Typography variant="h4">教師ダッシュボード</Typography>
+      </Box>
 
-      {err && <p className="text-red-500 mb-4">{err}</p>}
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
-      {me ? (
-        <section className="space-y-3">
-          <div>
-            <h2 className="font-semibold">プロフィール</h2>
-            <pre className="bg-gray-100 p-3 rounded overflow-auto">
-              {JSON.stringify(me, null, 2)}
-            </pre>
-          </div>
+      <Box mt={4}>
+        <Typography variant="h6">アカウント情報</Typography>
+        <Typography variant="body1">名前：{teacher?.name ?? '-'}</Typography>
+        <Typography variant="body1">メール：{teacher?.email ?? '-'}</Typography>
+      </Box>
 
-          {/* ここにダッシュボードのカード等を増やしていく */}
-        </section>
-      ) : (
-        <p>プロフィール情報が見つかりません。</p>
-      )}
-    </main>
+      <Divider sx={{ my: 3 }} />
+
+      <Box>
+        <Typography variant="h6">担任クラス</Typography>
+        <Typography variant="body1">クラス名：{classroom?.name ?? '-'}</Typography>
+
+        <Box mt={2}>
+          <Typography variant="subtitle1">生徒一覧</Typography>
+          <List dense>
+            {students.length ? students.map(s => (
+              <ListItem key={s.id}>
+                <ListItemText primary={s.name} secondary={s.email} />
+              </ListItem>
+            )) : <Typography color="text.secondary">生徒はまだいません</Typography>}
+          </List>
+        </Box>
+
+        <Box mt={2}>
+          <Button component={Link} href="/teacher/invitations" variant="contained">
+            生徒招待へ
+          </Button>
+        </Box>
+      </Box>
+    </Container>
   );
 }

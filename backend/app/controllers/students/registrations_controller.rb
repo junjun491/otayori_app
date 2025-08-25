@@ -22,7 +22,7 @@ class Students::RegistrationsController < Devise::RegistrationsController
     end
 
     # ★ JwtIssuer の署名方式に合わせる（id or userオブジェクト）
-    token = ::JwtIssuer.issue(resource.id)
+    token = ::JwtIssuer.issue(resource)
     response.set_header("Authorization", "Bearer #{token}")
 
     render json: { data: { id: resource.id, name: resource.name, email: resource.email } }, status: :created
