@@ -16,7 +16,9 @@ class Classrooms::InvitationsController < ApplicationController
   # POST /classrooms/:classroom_id/invitations
   # body: { "email": "student@example.com" }
   def create
-    email = params.require(:email)
+    p = params.require(:invitation).permit(:email, :expires_at)
+    email = p[:email]
+    raise ActionController::ParameterMissing, :email if email.blank?
 
     invitation = @classroom.invitations.create!(
       email: email,
@@ -33,7 +35,7 @@ class Classrooms::InvitationsController < ApplicationController
         id: invitation.id,
         email: invitation.email,
         token: invitation.token,
-        signup_url: signup_url_for(invitation),
+        signup_url: ::FrontendUrl.signup_student(invitation),
         expires_at: invitation.expires_at,
         mailed: real_send?
       }
@@ -65,16 +67,10 @@ class Classrooms::InvitationsController < ApplicationController
 
   private
   def set_classroom
-    # current_teacher を使う実装でOK（JwtAuthenticatable で提供されている前提）
-    @classroom = Classroom.find_by!(id: params[:classroom_id], teacher_id: current_teacher.id)
+    @classroom = current_teacher.classroom
   end
 
   def real_send?
     ActiveModel::Type::Boolean.new.cast(ENV.fetch("MAIL_REAL_SEND", "false"))
-  end
-
-  def signup_url_for(inv)
-    base = Rails.application.config_for(:frontend)["base_url"]
-    "#{base}/signup?token=#{inv.token}&classroom_id=#{inv.classroom_id}"
   end
 end

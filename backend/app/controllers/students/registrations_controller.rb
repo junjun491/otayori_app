@@ -8,11 +8,6 @@ class Students::RegistrationsController < Devise::RegistrationsController
       return render json: { error: "invalid_invitation" }, status: :unprocessable_entity
     end
 
-    # ★ 招待メールと入力メールの一致を強制（なりすまし防止）
-    if inv.email.downcase != sign_up_params[:email].to_s.downcase
-      return render json: { error: "email_mismatch" }, status: :unprocessable_entity
-    end
-
     build_resource(sign_up_params)
     resource.classroom_id = inv.classroom_id
 

@@ -1,45 +1,51 @@
 class MessagesController < ApplicationController
-    before_action :authenticate_api!
-  
-    # GET /messages
-    def index
-      messages = current_teacher.messages.order(created_at: :desc)
-      render json: messages
+  before_action :authenticate_api!
+  before_action :set_message
+
+  def show
+    if current_teacher
+      return head :forbidden unless @message.teacher_id == current_teacher.id
+    elsif current_student
+      return head :forbidden unless @message.message_deliveries.exists?(student_id: current_student.id)
+    else
+      return head :forbidden
     end
-  
-    # GET /messages/:id
-    def show
-      message = current_teacher.messages.find_by(id: params[:id])
-      if message
-        render json: message
-      else
-        render json: { error: 'Message not found' }, status: :not_found
-      end
-    end
-  
-    # POST /messages
-    def create
-        classroom = current_teacher.classroom
-        return render json: { error: 'Classroom not found' }, status: :unprocessable_entity unless classroom
-      
-        message = classroom.messages.build(message_params.merge(teacher: current_teacher, status: :draft))
-      
-        if message.save
-          # ✅ ここで全生徒に MessageDelivery を生成
-          classroom.students.find_each do |student|
-            MessageDelivery.create!(message: message, student: student)
-          end
-      
-          render json: message, status: :created
-        else
-          render json: { errors: message.errors.full_messages }, status: :unprocessable_entity
-        end
-      end
-  
-    private
-  
-    def message_params
-      params.require(:message).permit(:title, :content, :published_at, :deadline)
-    end
+    render json: { data: serialize_message(@message) }
   end
-  
+
+  def publish
+    ensure_teacher_sender!
+    @message.publish!(recipient_ids: params[:recipient_ids])
+    render json: { data: serialize_message(@message) }
+  end
+
+  def disable
+    ensure_teacher_sender!
+    @message.disable!
+    render json: { data: serialize_message(@message) }
+  end
+
+  def destroy
+    ensure_teacher_sender!
+    return render(json: { error: "not_deletable" }, status: :unprocessable_entity) unless @message.deletable?
+    @message.destroy!
+    head :no_content
+  end
+
+  private
+
+  def set_message
+    @message = Message.find(params[:id])
+  end
+
+  def ensure_teacher_sender!
+    head :forbidden unless current_teacher && @message.teacher_id == current_teacher.id
+  end
+
+  def serialize_message(m)
+    m.as_json(only: [ :id, :title, :content, :status, :published_at, :deadline, :target_all ])
+     .merge(classroom_id: m.classroom_id,
+            teacher_id: m.teacher_id,
+            deliveries: m.message_deliveries.select(:id, :student_id, :read_at))
+  end
+end

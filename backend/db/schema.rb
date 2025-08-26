@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_15_124712) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_26_121046) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -49,21 +49,39 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_15_124712) do
     t.datetime "read_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["message_id", "student_id"], name: "index_message_deliveries_on_message_id_and_student_id", unique: true
     t.index ["message_id"], name: "index_message_deliveries_on_message_id"
+    t.index ["read_at"], name: "index_message_deliveries_on_read_at"
     t.index ["student_id"], name: "index_message_deliveries_on_student_id"
+  end
+
+  create_table "message_responses", force: :cascade do |t|
+    t.bigint "message_delivery_id", null: false
+    t.integer "status", default: 0, null: false
+    t.jsonb "form_data", default: {}, null: false
+    t.datetime "responded_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["message_delivery_id"], name: "index_message_responses_on_message_delivery_id"
+    t.index ["responded_at"], name: "index_message_responses_on_responded_at"
+    t.index ["status"], name: "index_message_responses_on_status"
   end
 
   create_table "messages", force: :cascade do |t|
     t.string "title"
     t.text "content"
-    t.integer "status"
+    t.integer "status", default: 0, null: false
     t.datetime "published_at"
     t.date "deadline"
     t.bigint "classroom_id", null: false
     t.bigint "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "target_all", default: true, null: false
+    t.index ["classroom_id", "status"], name: "index_messages_on_classroom_id_and_status"
     t.index ["classroom_id"], name: "index_messages_on_classroom_id"
+    t.index ["deadline"], name: "index_messages_on_deadline"
+    t.index ["published_at"], name: "index_messages_on_published_at"
     t.index ["teacher_id"], name: "index_messages_on_teacher_id"
   end
 
@@ -101,6 +119,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_15_124712) do
   add_foreign_key "invitations", "classrooms"
   add_foreign_key "message_deliveries", "messages"
   add_foreign_key "message_deliveries", "students"
+  add_foreign_key "message_responses", "message_deliveries"
   add_foreign_key "messages", "classrooms"
   add_foreign_key "messages", "teachers"
   add_foreign_key "students", "classrooms"
