@@ -41,7 +41,7 @@ export default function InvitationsPage() {
       try {
         const clsRes = await apiFetch('/classrooms');
         const clsBody = await clsRes.json().catch(() => ({}));
-        const cls = (clsBody?.data && clsBody.data[0]) || clsBody?.[0] || null;
+        const cls = (clsBody?.data && clsBody.data) || null;
         setClassroom(cls);
         if (cls?.id) await fetchInvitations(cls.id);
       } catch {
@@ -53,7 +53,7 @@ export default function InvitationsPage() {
 
   async function fetchInvitations(cid: number) {
     try {
-      const res = await apiFetch(`/invitations?classroom_id=${cid}`);
+      const res = await apiFetch(`/classrooms/${cid}/invitations`);
       const body = await res.json().catch(() => ({}));
       setInvitations(body?.data || body || []);
     } catch {
@@ -61,40 +61,60 @@ export default function InvitationsPage() {
     }
   }
 
-  async function onCreate(data: FormData) {
-    setError(''); setFlash('');
-    if (!classroom?.id) { setError('クラスが未選択です'); return; }
+async function onCreate(data: FormData) {
+  setError(''); setFlash('');
+  if (!classroom?.id) { setError('クラス情報の取得前です。'); return; }
 
-    // 有効期限を days → ISO へ（バックエンド仕様に合わせて調整）
-    let expires_at: string | undefined;
-    if (data.expiresInDays && /^\d+$/.test(data.expiresInDays)) {
-      const d = new Date();
-      d.setDate(d.getDate() + Number(data.expiresInDays));
-      expires_at = d.toISOString();
-    }
-
-    const emails = data.emails.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
-    for (const email of emails) {
-      try {
-        const res = await apiFetch('/invitations', {
-          method: 'POST',
-          body: JSON.stringify({ invitation: { classroom_id: classroom.id, email, ...(expires_at ? { expires_at } : {}) } })
-        });
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          const msg = j?.errors ? (Array.isArray(j.errors) ? j.errors.join('\n') : String(j.errors))
-                    : j?.message || `作成失敗: ${email}`;
-          setError(prev => prev ? prev + '\n' + msg : msg);
-        }
-      } catch {
-        setError(prev => prev ? prev + `\n${email}: 作成失敗` : `${email}: 作成失敗`);
-      }
-    }
-
-    setFlash('招待を作成しました');
-    reset({ emails: '', expiresInDays: data.expiresInDays });
-    await fetchInvitations(classroom.id);
+  // 有効期限（日）→ ISO
+  let expires_at: string | undefined;
+  if (data.expiresInDays && /^\d+$/.test(data.expiresInDays)) {
+    const d = new Date();
+    d.setDate(d.getDate() + Number(data.expiresInDays));
+    expires_at = d.toISOString();
   }
+
+  const emails = data.emails.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+  let okCount = 0;
+  const errs: string[] = [];
+
+  for (const email of emails) {
+    try {
+      const res = await apiFetch(`/classrooms/${classroom.id}/invitations`, {
+        method: 'POST',
+        body: JSON.stringify({
+          invitation: { email, ...(expires_at ? { expires_at } : {}) }
+        }),
+      });
+
+      if (res.ok) {
+        okCount += 1;
+      } else {
+        let msg = '';
+        try {
+          const j = await res.json();
+          msg = j?.errors ? (Array.isArray(j.errors) ? j.errors.join(' / ') : String(j.errors))
+               : j?.message || '';
+        } catch {}
+        if (!msg) msg = res.status === 404 ? 'APIが見つかりません (404)' : `HTTP ${res.status}`;
+        errs.push(`${email}: ${msg}`);
+      }
+    } catch {
+      errs.push(`${email}: ネットワークエラー`);
+    }
+  }
+
+  if (errs.length) setError(errs.join('\n'));
+
+  if (okCount > 0) {
+    setFlash(`${okCount}件の招待を作成しました`);
+    reset({ emails: '', expiresInDays: data.expiresInDays });
+    // 一覧取得。404なら黙ってスキップ（未実装の間はノイズを出さない）
+    try { await fetchInvitations(classroom.id); } catch {}
+  } else {
+    setFlash(''); // 成功0件ならフラッシュなし
+  }
+}
+
 
   async function copyUrl(inv: Invitation) {
     if (!classroom) return;
@@ -130,7 +150,7 @@ export default function InvitationsPage() {
             {...register('expiresInDays')}
             sx={{ mb: 2 }}
           />
-          <Button type="submit" variant="contained" disabled={isSubmitting}>
+          <Button type="submit" variant="contained" disabled={isSubmitting || !classroom}>
             招待を作成
           </Button>
         </form>

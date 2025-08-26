@@ -13,6 +13,16 @@ export async function apiFetch(
   const headers = new Headers(init.headers || {});
   if (token) headers.set("Authorization", token);
 
+  const hasBody = typeof init.body !== "undefined";
+  const isFormData =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+
+  if (hasBody && !isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
   // localStorage運用なので cookie は送らない
   // 将来 HttpOnly クッキーに切替えたら 'include' に変更
   const res = await fetch(`${base}${path}`, {

@@ -50,7 +50,7 @@ export default function StudentSignupPage() {
     setClassroomId(c)
     ;(async () => {
       try {
-        const url = `${API_BASE}/invitations/verify?token=${encodeURIComponent(t)}&classroom_id=${encodeURIComponent(c)}`
+        const url = `${API_BASE}/classrooms/${encodeURIComponent(c)}/invitations/verify?token=${encodeURIComponent(t)}`
         const res = await fetch(url)
         const body = await res.json().catch(() => ({}))
         if (!res.ok) {
