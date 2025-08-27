@@ -1,45 +1,40 @@
-# config/routes.rb
 Rails.application.routes.draw do
-  devise_for :teachers,
-             defaults: { format: :json },
-             controllers: {
-               sessions: "teachers/sessions",
-               registrations: "teachers/registrations"
-             }
-
-  devise_for :students,
-             defaults: { format: :json },
-             controllers: {
-               sessions: "students/sessions",
-               registrations: "students/registrations"
-             }
-
-  namespace :teachers do
-    get "profile", to: "profiles#show"
-  end
-
-  resources :classrooms, only: [ :index, :show, :create ] do
-    resources :students, only: [ :index ], module: :classrooms
-
-    resources :invitations, only: [ :create, :index, :show ], module: :classrooms do
-      collection do
-        get :verify
-      end
-    end
-  end
-
   scope defaults: { format: :json } do
-    resources :classrooms, only: [ :index, :show, :create ] do
-      resources :messages, only: [ :index, :create ], module: :classrooms
+    devise_for :teachers,
+               controllers: {
+                 sessions: "teachers/sessions",
+                 registrations: "teachers/registrations"
+               }
+
+    devise_for :students,
+               controllers: {
+                 sessions: "students/sessions",
+                 registrations: "students/registrations"
+               }
+
+    namespace :teachers do
+      get "profile", to: "profiles#show"
     end
 
-    resources :messages, only: [ :show ] do
-      member do
-        post :publish
-        post :disable
-        delete :destroy
+    resources :classrooms, only: [:index, :show, :create] do
+      resources :students, only: [:index], module: :classrooms
+
+      resources :invitations, only: [:index, :show, :create], module: :classrooms do
+        collection { get :verify } # /classrooms/:classroom_id/invitations/verify
       end
-      resources :responses, only: [ :index, :create ], module: :messages
+
+      resources :messages, only: [:index, :show, :create], module: :classrooms do
+        member do
+          post :publish
+          post :disable
+          delete :destroy
+        end
+
+        resource :response, only: [:show, :create, :update], module: :messages
+      end
     end
+
+    # 生徒用: 自分の受信メッセージ一覧
+    get "/my/inbox", to: "inbox#index"
   end
 end
