@@ -5,7 +5,7 @@ class Message < ApplicationRecord
   has_many :message_deliveries, dependent: :destroy
   has_many :recipients, through: :message_deliveries, source: :recipient
 
-  enum status: { draft: 0, published: 1, disabled: 2 }
+  enum :status, { draft: 0, published: 1, disabled: 2 }
 
   validates :title, :content, presence: true
 
@@ -31,7 +31,7 @@ class Message < ApplicationRecord
 
   def attach_deliveries!(recipient_ids)
     ids =
-      if target_all || recipient_ids.blank?
+      if target_all
         classroom.students.pluck(:id)
       else
         classroom.students.where(id: recipient_ids).pluck(:id)

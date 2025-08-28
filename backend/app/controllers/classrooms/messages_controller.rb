@@ -2,6 +2,7 @@ class Classrooms::MessagesController < ApplicationController
   before_action :authenticate_api!
   before_action :ensure_teacher!
   before_action :set_classroom
+  before_action :set_message, only: [ :show, :publish, :disable ]
 
   # GET /classrooms/:classroom_id/messages
   def index
@@ -20,10 +21,34 @@ class Classrooms::MessagesController < ApplicationController
     render json: { data: serialize_message(msg) }, status: :created
   end
 
+  # GET /classrooms/:classroom_id/messages/:id
+  def show
+    render json: { data: serialize_message(@message, include_recipients: true) }
+  end
+
+  # POST /classrooms/:classroom_id/messages/:id/publish
+  def publish
+    return render json: { error: "already_published" }, status: :unprocessable_entity unless @message.draft?
+
+    p = params.require(:message).permit(:target_all, recipient_ids: [])
+    target_all = ActiveModel::Type::Boolean.new.cast(p[:target_all])
+    rids = target_all ? nil : p[:recipient_ids]
+    rids = nil if rids.blank? # 未指定は全員
+
+    @message.publish!(recipient_ids: rids)
+    render json: { data: serialize_message(@message) }, status: :ok
+  end
+
+  # 任意: 無効化
+  def disable
+    @message.disable!
+    render json: { data: serialize_message(@message) }, status: :ok
+  end
+
   private
 
   def set_classroom
-    @classroom = current_teacher.classrooms.find(params[:classroom_id])
+    @classroom = current_teacher.classroom
   end
 
   def ensure_teacher!
@@ -39,5 +64,15 @@ class Classrooms::MessagesController < ApplicationController
       classroom_id: m.classroom_id,
       recipient_count: m.message_deliveries.count
     )
+  end
+
+  private
+
+  def set_message
+    # /classrooms/:classroom_id/messages/:id の :id を使用
+    @message = @classroom.messages.find_by(id: params[:id])
+    return if @message
+
+    render json: { error: "not_found" }, status: :not_found
   end
 end
