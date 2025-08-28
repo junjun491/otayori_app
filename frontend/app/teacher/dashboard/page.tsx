@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import {
   Container, Box, Typography, List, ListItem, ListItemText,
-  Divider, Button, Alert, Stack, TextField
+  Divider, Button, Alert, Stack, TextField, Tooltip
 } from '@mui/material';
 
 type Teacher = { id: number; name: string; email: string };
@@ -20,15 +20,20 @@ export default function TeacherDashboardPage() {
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
 
+  // ✅ クラスがある場合だけ /classrooms/:id/messages/new を組み立て
+  const messageNewHref = useMemo(() => {
+    return classroom?.id ? `/classrooms/${classroom.id}/messages/new` : '#';
+  }, [classroom?.id]);
+
   useEffect(() => {
     (async () => {
       try {
-        // 教師プロフィール（実装に合わせて '/teachers/profile' 等でもOK）
+        // 教師プロフィール
         const meRes = await apiFetch('/teachers/profile');
         const meBody = await meRes.json().catch(() => ({}));
         setTeacher(meBody?.data ?? null);
 
-        // クラス（1クラス想定：先頭ひとつ）
+        // クラス（1クラス想定）
         const clsRes = await apiFetch('/classrooms');
         const clsBody = await clsRes.json().catch(() => ({}));
         const cls = (clsBody?.data ?? null);
@@ -133,12 +138,26 @@ export default function TeacherDashboardPage() {
           </List>
         </Box>
 
-        <Box mt={2}>
+        {/* ✅ お便り作成 導線（クラスがある場合のみ有効） */}
+        <Box mt={2} display="flex" gap={2} flexWrap="wrap">
+          <Tooltip title={classroom ? '' : 'クラス作成後に利用できます'}>
+            <span>
+              <Button
+                component={Link}
+                href={messageNewHref}
+                variant="contained"
+                disabled={!classroom}
+              >
+                お便りを作成
+              </Button>
+            </span>
+          </Tooltip>
+
           <Button
             component={Link}
             href="/teacher/invitations"
-            variant="contained"
-            disabled={!classroom} // クラス未作成なら招待は無効
+            variant="outlined"
+            disabled={!classroom}
           >
             生徒招待へ
           </Button>

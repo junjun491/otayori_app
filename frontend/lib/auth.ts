@@ -32,3 +32,43 @@ export function clearToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_KEY);
 }
+
+export function getJwtPayload(): any | null {
+  if (typeof window === "undefined") return null;
+  const auth = getToken(); // "Bearer xxx.yyy.zzz"
+  if (!auth) return null;
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  const jwt = m ? m[1] : auth;
+  const parts = jwt.split(".");
+  if (parts.length < 2) return null;
+
+  function b64urlDecode(s: string): string {
+    s = s.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    return atob(s);
+  }
+
+  try {
+    const payloadJson = b64urlDecode(parts[1]);
+    return JSON.parse(payloadJson);
+  } catch {
+    return null;
+  }
+}
+
+export function getRoleFromToken(): "teacher" | "student" | null {
+  const p = getJwtPayload();
+  const sub: string | undefined = p?.sub;
+  if (!sub) return null;
+  const role = sub.split(":")[0];
+  if (role === "teacher" || role === "student") return role;
+  return null;
+}
+
+export function isTokenExpired(graceSeconds = 0): boolean {
+  const p = getJwtPayload();
+  const now = Math.floor(Date.now() / 1000);
+  const exp: number | undefined = p?.exp;
+  if (!exp) return false; // expが無ければ期限判定しない
+  return now > exp - graceSeconds;
+}
