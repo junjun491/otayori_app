@@ -59,11 +59,16 @@ class Classrooms::MessagesController < ApplicationController
     params.require(:message).permit(:title, :content, :deadline, :target_all, :status)
   end
 
-  def serialize_message(m)
-    m.as_json(only: [ :id, :title, :content, :status, :published_at, :deadline, :target_all ]).merge(
-      classroom_id: m.classroom_id,
-      recipient_count: m.message_deliveries.count
+  def serialize_message(msg, include_recipients: false)
+    base = msg.as_json(
+      only: [:id, :title, :content, :status, :published_at, :deadline, :target_all, :classroom_id]
     )
+    base["recipient_count"] = msg.message_deliveries.count
+    if include_recipients
+      # 宛先一覧を返す（必要に応じて項目調整）
+      base["recipients"] = msg.recipients.select(:id, :name, :email)
+    end
+    base
   end
 
   private

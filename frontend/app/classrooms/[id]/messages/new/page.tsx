@@ -1,33 +1,67 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Container, Box, Typography, TextField, Button, Alert, Stack } from '@mui/material';
+import {
+  Container, Box, Typography, TextField, Button, Alert, Stack
+} from '@mui/material';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
+import Autocomplete from '@mui/material/Autocomplete';
+import Chip from '@mui/material/Chip';
 import { apiFetch } from '@/lib/api';
+
 type CreateMessageResponse = { data: { id: number } };
+type Student = { id: number; name: string; email: string };
 
 export default function MessageNewPage() {
   const { id: classroomId } = useParams<{ id: string }>();
   const router = useRouter();
 
+  // フォーム
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  // UIはローカル時刻で扱い、送信時にISOへ変換
   const [deadlineLocal, setDeadlineLocal] = useState(''); // 'YYYY-MM-DDTHH:mm'
+
+  // 作成結果
   const [messageId, setMessageId] = useState<number | null>(null);
+
+  // 送付先
+  const [students, setStudents] = useState<Student[]>([]);
+  const [targetAll, setTargetAll] = useState<boolean>(true);
+  const [selectedStudents, setSelectedStudents] = useState<Student[]>([]);
+
+  // UI状態
   const [flash, setFlash] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
+  // 学生一覧取得
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`/classrooms/${classroomId}/students`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json().catch(() => ({}));
+        const list: Student[] = Array.isArray(json?.data)
+          ? json.data
+          : Array.isArray(json) ? json : [];
+        setStudents(list);
+      } catch (e: any) {
+        setErr(`生徒一覧の取得に失敗しました：${e?.message ?? e}`);
+      }
+    })();
+  }, [classroomId]);
+
   function toISOFromLocal(datetimeLocal: string): string | undefined {
     if (!datetimeLocal) return undefined;
-    // datetime-localはタイムゾーン情報を含まないので、ローカルとみなしてDate生成→ISO化
     const d = new Date(datetimeLocal);
     if (Number.isNaN(d.getTime())) return undefined;
-    return d.toISOString(); // 例: 2025-09-30T14:59:00.000Z
+    return d.toISOString();
   }
 
+  // 下書き作成
   async function createMessage() {
     setErr(null); setFlash(null);
     if (!title.trim()) { setErr('タイトルは必須です'); return; }
@@ -40,47 +74,61 @@ export default function MessageNewPage() {
       const res = await apiFetch(`/classrooms/${classroomId}/messages`, {
         method: 'POST',
         body: JSON.stringify({ message: body }),
+        // headers: { 'Content-Type': 'application/json' }, // apiFetchが付けない場合のみ
       });
 
-      const payload = (await res.json()) as CreateMessageResponse;
-      const id = payload.data.id;
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson?.errors?.join?.('\n') ?? errJson?.message ?? `HTTP ${res.status}`);
+      }
 
+      const payload = (await res.json()) as CreateMessageResponse;
+      const id = payload?.data?.id;
       if (!id) throw new Error('作成レスポンスにIDが含まれていません');
 
       setMessageId(id);
-      setFlash('下書きを作成しました。続けて公開できます。');
+      setFlash('下書きを作成しました。送付先を選んで公開できます。');
     } catch (e: any) {
-      // api() 内で throw された場合の message or サーバのJSON errors/message
       setErr(e?.message ?? '下書き作成に失敗しました');
     } finally {
       setSubmitting(false);
     }
   }
 
+  // 公開
   async function publishMessage() {
     if (!messageId) return;
     setErr(null); setFlash(null);
+
+    if (!targetAll && selectedStudents.length === 0) {
+      setErr('送付先が未選択です（全員に送る をONにするか、個別選択してください）');
+      return;
+    }
+
     setPublishing(true);
     try {
+      const msgParam = targetAll
+        ? { target_all: true }
+        : { recipient_ids: selectedStudents.map(s => s.id) };
+
       const res = await apiFetch(
         `/classrooms/${classroomId}/messages/${messageId}/publish`,
         {
           method: 'POST',
-          body: JSON.stringify({ message: {} }),
+          body: JSON.stringify({ message: msgParam }),
+          // headers: { 'Content-Type': 'application/json' },
         }
       );
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(
-          errJson?.errors?.join?.('\n') ?? errJson?.message ?? `HTTP ${res.status}`
-        );
+        throw new Error(errJson?.errors?.join?.('\n') ?? errJson?.message ?? `HTTP ${res.status}`);
       }
 
       setFlash('公開しました。');
       router.replace(`/classrooms/${classroomId}/messages/${messageId}`);
     } catch (e:any) {
-      setErr(e.message);
+      setErr(e?.message ?? '公開に失敗しました');
     } finally {
       setPublishing(false);
     }
@@ -121,6 +169,45 @@ export default function MessageNewPage() {
           onChange={e=>setDeadlineLocal(e.target.value)}
           helperText="未指定可。指定した場合は公開後の締切判定に使用します。"
         />
+
+        {/* 送付先選択 */}
+        <Box sx={{ mt: 2 }}>
+          <FormControlLabel
+            control={<Switch checked={targetAll} onChange={(e)=>setTargetAll(e.target.checked)} />}
+            label="全員に送る"
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ ml: 1, mt: 0.5 }}>
+            {targetAll
+              ? 'このメッセージはクラス全員に配信されます。'
+              : '配信先の生徒を選択してください。'}
+          </Typography>
+
+          <Autocomplete
+            multiple
+            disableCloseOnSelect
+            options={students}
+            value={selectedStudents}
+            onChange={(_, v)=>setSelectedStudents(v)}
+            isOptionEqualToValue={(o, v) => o.id === v.id}
+            getOptionLabel={(s)=> `${s.name} <${s.email}>`}
+            disabled={targetAll}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip label={option.name} {...getTagProps({ index })} key={option.id}/>
+              ))
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="個別送付先（全員に送るがOFFのとき有効）"
+                placeholder="生徒を検索して選択"
+                helperText={!targetAll ? `選択中: ${selectedStudents.length}名` : ' '}
+              />
+            )}
+            sx={{ mt: 1 }}
+          />
+        </Box>
+
         <Box>
           <Button
             variant="contained"
@@ -133,7 +220,7 @@ export default function MessageNewPage() {
           <Button
             variant="outlined"
             onClick={publishMessage}
-            disabled={!messageId || publishing}
+            disabled={!messageId || publishing || (!targetAll && selectedStudents.length === 0)}
           >
             {publishing ? '公開中…' : '公開'}
           </Button>
