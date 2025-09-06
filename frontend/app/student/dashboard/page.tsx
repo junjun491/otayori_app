@@ -57,7 +57,7 @@ export default function StudentDashboardPage() {
           const expired = it.deadline ? new Date(it.deadline) < new Date() : false;
           return (
             <Card key={String(it.message_id)} sx={{ border: isRead ? '1px solid #eee' : '2px solid #1976d2' }}>
-              <CardActionArea onClick={() => router.push(`/messages/${it.message_id}`)}>
+              <CardActionArea onClick={() => router.push(`/student/messages/${it.message_id}`)}>
                 <CardContent>
                   <Box display="flex" alignItems="center" gap={1} mb={1}>
                     {!isRead && <Chip label="未読" size="small" />}

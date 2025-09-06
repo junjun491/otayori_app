@@ -1,4 +1,4 @@
-class InboxController < ApplicationController
+class My::InboxController < ApplicationController
   before_action :authenticate_student!
 
   def index
