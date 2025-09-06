@@ -2,10 +2,10 @@
 class Classrooms::InvitationsController < ApplicationController
   include JwtAuthenticatable
 
-  before_action :authenticate_api!
+  before_action :authenticate_teacher!
   before_action :set_classroom,     except: [ :verify ]
   # ← verify は生徒が未認証で叩く。ここをスキップ
-  skip_before_action :authenticate_api!, only: [ :verify ]
+  skip_before_action :authenticate_teacher!, only: [ :verify ]
 
   # GET /classrooms/:classroom_id/invitations
   def index

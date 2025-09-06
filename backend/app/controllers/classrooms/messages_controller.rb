@@ -1,5 +1,5 @@
 class Classrooms::MessagesController < ApplicationController
-  before_action :authenticate_api!
+  before_action :authenticate_teacher!
   before_action :ensure_teacher!
   before_action :set_classroom
   before_action :set_message, only: [ :show, :publish, :disable ]

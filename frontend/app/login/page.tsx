@@ -8,7 +8,7 @@ import {
 import { useRouter } from 'next/navigation';
 import {
   API_BASE, getToken, setToken, safeNextParam,
-  getRoleFromToken, isTokenExpired
+  getRoleFromToken, isTokenExpired, roleAwareNext
 } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -28,8 +28,7 @@ export default function LoginPage() {
     const t = getToken();
     if (t && !isTokenExpired()) {
       const roleFromToken = getRoleFromToken();
-      const fallback = '/dashboard';
-      const defaultPath = roleFromToken === 'teacher' ? '/teacher/dashboard' : fallback;
+      const defaultPath = roleFromToken === 'teacher' ? '/teacher/dashboard' : '/student/dashboard';
       router.replace(safeNextParam(defaultPath));
     }
   }, [router]);
@@ -62,8 +61,9 @@ export default function LoginPage() {
 
       // 保存直後のトークンからロールを判定して遷移
       const roleFromToken = getRoleFromToken();
-      const defaultPath = roleFromToken === 'teacher' ? '/teacher/dashboard' : '/dashboard';
-      router.replace(safeNextParam(defaultPath));
+      const fallback = roleFromToken === 'teacher' ? '/teacher/dashboard' : '/student/dashboard';
+      const nextParam = new URLSearchParams(window.location.search).get('next');
+      router.replace(roleAwareNext(nextParam, roleFromToken, fallback));
     } catch (e: any) {
       setErr(e.message || 'login_error');
     } finally {

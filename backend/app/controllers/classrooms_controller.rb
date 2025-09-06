@@ -1,5 +1,5 @@
 class ClassroomsController < ApplicationController
-    before_action :authenticate_api!
+    before_action :authenticate_teacher!
 
   def index
     classes = current_teacher.classroom

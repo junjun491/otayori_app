@@ -56,13 +56,12 @@ export function getJwtPayload(): any | null {
   }
 }
 
-export function getRoleFromToken(): "teacher" | "student" | null {
+export function getRoleFromToken(): "teacher" | "student" {
   const p = getJwtPayload();
   const sub: string | undefined = p?.sub;
-  if (!sub) return null;
-  const role = sub.split(":")[0];
+  const role = sub?.split(":")[0];
   if (role === "teacher" || role === "student") return role;
-  return null;
+  throw new Error("invalid_role");
 }
 
 export function isTokenExpired(graceSeconds = 0): boolean {
@@ -71,4 +70,28 @@ export function isTokenExpired(graceSeconds = 0): boolean {
   const exp: number | undefined = p?.exp;
   if (!exp) return false; // expが無ければ期限判定しない
   return now > exp - graceSeconds;
+}
+
+export function roleAwareNext(
+  nextUrl: string | null | undefined,
+  role: "teacher" | "student",
+  fallback: string
+) {
+  if (!nextUrl) return fallback;
+  try {
+    const u = nextUrl.startsWith("http")
+      ? new URL(nextUrl)
+      : new URL(nextUrl, window.location.origin);
+    const path = u.pathname + u.search + u.hash;
+
+    if (role === "teacher") {
+      // 先生は /teacher 配下だけ許可
+      return path.startsWith("/teacher") ? path : fallback;
+    } else {
+      // 生徒は /teacher 配下は禁止
+      return path.startsWith("/teacher") ? fallback : path;
+    }
+  } catch {
+    return fallback;
+  }
 }

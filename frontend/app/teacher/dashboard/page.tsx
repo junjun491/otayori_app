@@ -22,7 +22,7 @@ export default function TeacherDashboardPage() {
 
   // ✅ クラスがある場合だけ /classrooms/:id/messages/new を組み立て
   const messageNewHref = useMemo(() => {
-    return classroom?.id ? `/classrooms/${classroom.id}/messages/new` : '#';
+    return classroom?.id ? `/teacher/classrooms/${classroom.id}/messages/new` : '#';
   }, [classroom?.id]);
 
   useEffect(() => {
