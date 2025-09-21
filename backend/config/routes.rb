@@ -39,7 +39,7 @@ Rails.application.routes.draw do
       resources :messages, only: [ :index, :show ] do
         # 既読は副作用のある作成系が安全
         # PUTにして冪等にしても良い（同じ結果を返す）
-        post :receipt,  on: :member   # 既読（既読レコード作成）
+        post :confirmed,  on: :member   # 既読（既読レコード作成）
         put  :response, on: :member   # 回答の新規/更新（冪等）
       end
     end

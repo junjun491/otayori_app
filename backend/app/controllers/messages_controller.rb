@@ -46,6 +46,6 @@ class MessagesController < ApplicationController
     m.as_json(only: [ :id, :title, :content, :status, :published_at, :deadline, :target_all ])
      .merge(classroom_id: m.classroom_id,
             teacher_id: m.teacher_id,
-            deliveries: m.message_deliveries.select(:id, :student_id, :read_at))
+            deliveries: m.message_deliveries.select(:id, :student_id, :confirmed_at))
   end
 end

@@ -16,6 +16,7 @@
     "@hookform/resolvers": "^5.2.1",
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.2.0",
+    "dayjs": "^1.11.18",
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -53,14 +53,14 @@ export default function StudentDashboardPage() {
 
       <Box display="grid" gap={2}>
         {items.map((it) => {
-          const isRead = !!it.read_at;
+          const isConfirmed = !!it.confirmed_at;
           const expired = it.deadline ? new Date(it.deadline) < new Date() : false;
           return (
-            <Card key={String(it.message_id)} sx={{ border: isRead ? '1px solid #eee' : '2px solid #1976d2' }}>
+            <Card key={String(it.message_id)} sx={{ border: isConfirmed ? '1px solid #eee' : '2px solid #1976d2' }}>
               <CardActionArea onClick={() => router.push(`/student/messages/${it.message_id}`)}>
                 <CardContent>
                   <Box display="flex" alignItems="center" gap={1} mb={1}>
-                    {!isRead && <Chip label="未読" size="small" />}
+                    {!isConfirmed && <Chip label="未読" size="small" />}
                     {expired && <Chip label="期限切れ" size="small" color="warning" />}
                   </Box>
                   <Typography variant="h6" sx={{ mb: 0.5 }}>{it.title}</Typography>

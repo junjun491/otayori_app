@@ -17,7 +17,7 @@ export default function StudentMessageDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
 
-  const isRead = useMemo(() => !!data?.delivery?.read_at, [data?.delivery?.read_at]);
+  const isConfirmed = useMemo(() => !!data?.delivery?.confirmed_at, [data?.delivery?.confirmed_at]);
   const contentHtml = data?.content_html;
   const contentText = data?.content_text ?? '';
 
@@ -39,19 +39,19 @@ export default function StudentMessageDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   const markRead = async () => {
-    if (isRead || posting) return;
+    if (isConfirmed || posting) return;
     setPosting(true);
     setErr(null);
 
     // 楽観的更新
     const prev = data;
-    if (prev) setData({ ...prev, delivery: { ...prev.delivery, read_at: new Date().toISOString() } });
+    if (prev) setData({ ...prev, delivery: { ...prev.delivery, confirmed_at: new Date().toISOString() } });
 
     try {
-      const res = await apiFetch(`/my/messages/${messageId}/read`, { method: 'POST' });
+      const res = await apiFetch(`/my/messages/${messageId}/confirmed`, { method: 'POST' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const j = await res.json(); // 期待: { ok: true, read_at: string }
-      setData(d => d ? { ...d, delivery: { ...d.delivery, read_at: j.read_at ?? d.delivery.read_at } } : d);
+      const j = await res.json(); // 期待: { ok: true, confirmed_at: string }
+      setData(d => d ? { ...d, delivery: { ...d.delivery, confirmed_at: j.confirmed_at ?? d.delivery.confirmed_at } } : d);
     } catch (e: any) {
       // ロールバック
       setData(prev ?? null);
@@ -66,7 +66,7 @@ export default function StudentMessageDetailPage() {
       <Box mt={6} mb={3} display="flex" alignItems="center" justifyContent="space-between">
         <Typography variant="h4">お便り</Typography>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Chip label={isRead ? '確認済み' : '未確認'} />
+          <Chip label={isConfirmed ? '確認済み' : '未確認'} />
           <Button size="small" variant="outlined" onClick={() => router.push('/student/dashboard')}>
             受信箱へ戻る
           </Button>
@@ -93,8 +93,8 @@ export default function StudentMessageDetailPage() {
           )}
 
           <Stack direction="row" spacing={2}>
-            <Button variant="contained" onClick={markRead} disabled={posting || isRead}>
-              {isRead ? '確認済みです' : '確認済みにする'}
+            <Button variant="contained" onClick={markRead} disabled={posting || isConfirmed}>
+              {isConfirmed ? '確認済みです' : '確認済みにする'}
             </Button>
           </Stack>
         </Box>

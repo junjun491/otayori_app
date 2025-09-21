@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_26_121046) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_19_213217) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -46,12 +46,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_26_121046) do
   create_table "message_deliveries", force: :cascade do |t|
     t.bigint "message_id", null: false
     t.bigint "student_id", null: false
-    t.datetime "read_at"
+    t.datetime "confirmed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["confirmed_at"], name: "index_message_deliveries_on_confirmed_at"
     t.index ["message_id", "student_id"], name: "index_message_deliveries_on_message_id_and_student_id", unique: true
     t.index ["message_id"], name: "index_message_deliveries_on_message_id"
-    t.index ["read_at"], name: "index_message_deliveries_on_read_at"
     t.index ["student_id"], name: "index_message_deliveries_on_student_id"
   end
 

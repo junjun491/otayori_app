@@ -5,7 +5,7 @@ export type InboxItem = {
   title: string;
   published_at: string;
   deadline: string | null;
-  read_at: string | null;
+  confirmed_at: string | null;
 };
 export type InboxResponse = { items: InboxItem[] };
 
@@ -18,7 +18,7 @@ export type MessageShow = {
   published_at: string;
   deadline: string | null;
   delivery: {
-    read_at: string | null;
+    confirmed_at: string | null;
     responded_at: string | null;
     status: "none" | "saved" | "submitted";
     form_data?: { text?: string } | null;

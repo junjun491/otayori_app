@@ -3,7 +3,7 @@ class Message < ApplicationRecord
   belongs_to :sender, class_name: "Teacher", foreign_key: "teacher_id"
 
   has_many :message_deliveries, dependent: :destroy
-  has_many :recipients, through: :message_deliveries, source: :recipient
+  has_many :students, through: :message_deliveries
 
   enum :status, { draft: 0, published: 1, disabled: 2 }
 

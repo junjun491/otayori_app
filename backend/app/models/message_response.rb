@@ -1,6 +1,6 @@
 class MessageResponse < ApplicationRecord
   belongs_to :message_delivery
-  enum status: { draft: 0, submitted: 1 }
+  enum :status, { draft: 0, submitted: 1 }
 
   validate :respect_deadline
 

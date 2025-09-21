@@ -152,7 +152,18 @@ export default function TeacherDashboardPage() {
               </Button>
             </span>
           </Tooltip>
-
+          <Tooltip title={classroom ? '' : 'クラス作成後に利用できます'}>
+            <span>
+              <Button
+                component={Link}
+                href={classroom ? `/teacher/classrooms/${classroom.id}/messages` : '#'}
+                variant="outlined"
+                disabled={!classroom}
+              >
+                お便り一覧へ
+              </Button>
+            </span>
+          </Tooltip>
           <Button
             component={Link}
             href="/teacher/invitations"

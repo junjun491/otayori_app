@@ -18,7 +18,7 @@ class My::InboxController < ApplicationController
         title:        m&.title,
         published_at: m&.published_at&.iso8601,
         deadline:     m&.deadline&.iso8601,
-        read_at:      d.read_at&.iso8601
+        confirmed_at:      d.confirmed_at&.iso8601
       }
     end
 
