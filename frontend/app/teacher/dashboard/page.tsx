@@ -144,18 +144,6 @@ export default function TeacherDashboardPage() {
             <span>
               <Button
                 component={Link}
-                href={messageNewHref}
-                variant="contained"
-                disabled={!classroom}
-              >
-                お便りを作成
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title={classroom ? '' : 'クラス作成後に利用できます'}>
-            <span>
-              <Button
-                component={Link}
                 href={classroom ? `/teacher/classrooms/${classroom.id}/messages` : '#'}
                 variant="outlined"
                 disabled={!classroom}

@@ -41,8 +41,9 @@ export default function MessagesIndexPage() {
       try {
         const res = await apiFetch(`/classrooms/${classroomId}/messages`);
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        const json: IndexResponse = await res.json();
-        if (!abort) setItems(json.items || []);
+        const json = await res.json().catch(() => ({}));
+        const rows = json.data ?? [];
+        if (!abort) setItems(rows as MessageListItem[]);
       } catch (e: any) {
         if (!abort) setErr(e.message || 'failed to fetch');
       } finally {
