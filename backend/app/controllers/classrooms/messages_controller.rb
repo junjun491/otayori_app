@@ -63,7 +63,18 @@ class Classrooms::MessagesController < ApplicationController
     base = msg.as_json(
       only: [ :id, :title, :content, :status, :published_at, :deadline, :target_all, :classroom_id ]
     )
-    base["recipient_count"] = msg.message_deliveries.count
+    base["recipient_count"] = msg.message_deliveries.size
+    # ★追加: 各生徒の確認状況（既読・回答）
+    base["deliveries"] = msg.message_deliveries.map do |d|
+      r = d.student
+      {
+        id: d.id,
+        recipient_id: r&.id,
+        recipient_name: r&.name,
+        recipient_email: r&.email,
+        confirmed_at: d.confirmed_at,       # 確認済み時刻
+      }
+    end
     if include_recipients
       # 宛先一覧を返す（必要に応じて項目調整）
       base["recipients"] = msg.students.select(:id, :name, :email)

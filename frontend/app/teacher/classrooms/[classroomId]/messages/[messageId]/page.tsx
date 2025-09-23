@@ -11,7 +11,17 @@ import dayjs from 'dayjs';
 
 type RouteParams = { classroomId: string; messageId: string };
 
-// 先生用 詳細データの想定型（サーバの serialize_message に合わせる）
+// 配信1件分
+type DeliveryRow = {
+  id: number;
+  recipient_id: number | null;
+  recipient_name: string | null;
+  recipient_email: string | null;
+  confirmed_at: string | null;          // ← read_at ではなく confirmed_at
+  status?: 'sent' | 'confirmed' | 'responded' | string;
+};
+
+// 先生用 詳細データ（サーバの serialize_message に合わせる）
 type TeacherMessageShow = {
   id: number;
   classroom_id: number;
@@ -24,6 +34,7 @@ type TeacherMessageShow = {
   target_all: boolean;
   recipient_count?: number;
   recipients?: { id: number; name: string; email: string }[]; // include時のみ
+  deliveries?: DeliveryRow[];      // ★追加：確認状況をここに載せる
 };
 
 export default function TeacherMessageDetailPage() {
@@ -188,17 +199,57 @@ export default function TeacherMessageDetailPage() {
             </Typography>
 
             {/* recipients が返ってきていれば簡易表示（必要ならテーブル化して拡張） */}
-            {Array.isArray(data.recipients) && data.recipients.length > 0 && (
-              <Box sx={{ mt: 1 }}>
+            {/* ★追加: 確認済み / 未確認の一覧 */}
+            {Array.isArray(data.deliveries) && (
+              <Box sx={{ mt: 2 }}>
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>宛先一覧</Typography>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
-                  {data.recipients.map(r => (
-                    <li key={r.id}>
-                      <Typography variant="body2">{r.name} <span style={{ color: '#888' }}>({r.email})</span></Typography>
-                    </li>
-                  ))}
-                </ul>
+                {(() => {
+                  const read = data.deliveries.filter(d => !!d.confirmed_at);
+                  const unread = data.deliveries.filter(d => !d.confirmed_at);
+                  return (
+                    <Box display="grid" gap={2}>
+                      <Box>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                          <Typography variant="subtitle2">確認済み</Typography>
+                          <Chip size="small" label={`${read.length}人`} />
+                        </Stack>
+                        {read.length === 0 ? (
+                          <Typography variant="body2" color="text.secondary">まだ誰も確認していません</Typography>
+                        ) : (
+                          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                            {read.map(d => (
+                              <li key={d.id}>
+                                <Typography variant="body2">
+                                  {d.recipient_name ?? '(不明)'} <span style={{ color: '#888' }}>({d.recipient_email ?? '-'})</span>
+                                  {d.confirmed_at && ` / 既読: ${new Date(d.confirmed_at).toLocaleString()}`}
+                                </Typography>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </Box>
+                      <Box>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                          <Typography variant="subtitle2">未確認</Typography>
+                          <Chip size="small" label={`${unread.length}人`} />
+                        </Stack>
+                        {unread.length === 0 ? (
+                          <Typography variant="body2" color="text.secondary">未確認者はいません</Typography>
+                        ) : (
+                          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                            {unread.map(d => (
+                              <li key={d.id}>
+                                <Typography variant="body2">
+                                  {d.recipient_name ?? '(不明)'} <span style={{ color: '#888' }}>({d.recipient_email ?? '-'})</span>
+                                </Typography>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })()}
               </Box>
             )}
           </Paper>
