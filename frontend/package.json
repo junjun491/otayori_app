@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.0.0",
+    "@playwright/test": "^1.55.1",
     "@storybook/addon-a11y": "^9.0.3",
     "@storybook/addon-docs": "^9.0.3",
     "@storybook/addon-onboarding": "^9.0.3",
