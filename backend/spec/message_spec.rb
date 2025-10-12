@@ -33,6 +33,6 @@ RSpec.describe Message, type: :model do
     m = create(:message, classroom: c, status: :draft, target_all: false)
     m.publish!(recipient_ids: [ s.id ])
     expect { m.publish!(recipient_ids: [ s.id ]) }
-      .to change { m.message_deliveries.count }.by(0)
+      .not_to change { m.message_deliveries.count }
   end
 end

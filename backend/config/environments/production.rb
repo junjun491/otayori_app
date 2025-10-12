@@ -2,10 +2,21 @@ require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
-
+  config.lograge.enabled = true
+  config.lograge.formatter = Lograge::Formatters::Json.new
   # Code is not reloaded between requests.
   config.enable_reloading = false
-
+  config.lograge.custom_options = lambda do |event|
+    req = event.payload[:request]
+    {
+      request_id: event.payload[:request_id] || req&.request_id,
+      method: req&.request_method,
+      path: req&.path,
+      status: event.payload[:status],
+      duration_ms: event.duration&.round(1),
+      ip: req&.ip
+    }.compact
+  end
   # Eager load code on boot for better performance and memory savings (ignored by Rake tasks).
   config.eager_load = true
 
@@ -31,14 +42,15 @@ Rails.application.configure do
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
+  logger = ActiveSupport::Logger.new($stdout)
+  logger.formatter = ::Logger::Formatter.new
+  config.logger = ActiveSupport::TaggedLogging.new(logger)
   config.log_tags = [ :request_id ]
-  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 
   # Change to "debug" to log everything (including potentially personally-identifiable information!)
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
-  # Prevent health checks from clogging up the logs.
-  config.silence_healthcheck_path = "/up"
+  config.silence_healthcheck_path = "/healthz"
 
   # Don't log any deprecations.
   config.active_support.report_deprecations = false

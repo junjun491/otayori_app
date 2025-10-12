@@ -1,15 +1,10 @@
-# Omakase Ruby styling for Rails
+# .rubocop.yml
 inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 
-# Overwrite or add rules to create your own house style
-#
-# # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`
-# Layout/SpaceInsideArrayLiteralBrackets:
-#   Enabled: false
-
-require:
+plugins:
   - rubocop-rails
   - rubocop-rspec
+  # - rubocop-performance   # （任意）
 
 AllCops:
   TargetRubyVersion: 3.3
@@ -18,3 +13,18 @@ AllCops:
     - "db/schema.rb"
     - "bin/**/*"
     - "node_modules/**/*"
+    - "vendor/**/*"
+    - "tmp/**/*"
+    - "log/**/*"
+    - "frontend/**/*" # モノレポなら
+
+# Request/Feature系はテストが長くなりがちなので“最短で通す”設定
+RSpec/ExampleLength:
+  Max: 10
+  Exclude:
+    - "spec/requests/**/*"
+
+RSpec/MultipleExpectations:
+  Max: 5
+  Exclude:
+    - "spec/requests/**/*"

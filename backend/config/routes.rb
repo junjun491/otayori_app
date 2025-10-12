@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   scope defaults: { format: :json } do
+    get "/healthz", to: "healthz#show"
     devise_for :teachers,
                controllers: {
                  sessions: "teachers/sessions",
