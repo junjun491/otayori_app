@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rails:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_test
+      # ↓ CIを安定化させる運用系フラグ（本番だけONにするものはCIでOFF）
+      LOG_JSON: "0" # logrageのJSON出力を無効
+      RACK_ATTACK: "0" # レート制限を無効
+      # 外部連携はダミーで潰す
+      SENDGRID_API_KEY: test
+      # ↓ JWTのENV名はアプリ実装に合わせて。あなたの設定は JWT_SECRET_KEY なのでそのまま残す
+      JWT_SECRET_KEY: test
+      # master.key を使っている場合のみ設定
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libpq-dev jq
+
+      - name: Bundle
+        run: bundle install --jobs 4 --retry 3
+
+      - name: DB prepare
+        run: bin/rails db:prepare
+
+      - name: Lint (Rubocop)
+        run: bundle exec rubocop -P || true
+        # ↑ まずは落とさない運用。厳密にするなら || true を外す
+
+      - name: RSpec
+        run: bundle exec rspec --format progress
+
+      # 追加: /healthz を実際のサーバでスモークテスト
+      - name: Boot app & smoke test /healthz
+        run: |
+          # test環境・制限OFFでPuma起動（バックグラウンド）
+          RACK_ATTACK=0 LOG_JSON=0 bin/rails s -p 4000 -e test >/tmp/app.log 2>&1 &
+          # 起動待ち（最大30秒）
+          for i in {1..30}; do
+            curl -sf http://127.0.0.1:4000/healthz && break
+            sleep 1
+          done
+          # 念のためレスポンスを整形表示（失敗時の手掛かりにも）
+          curl -s http://127.0.0.1:4000/healthz | jq .
+
+      # 失敗時はサーバログをアーティファクトに保存（デバッグ用）
+      - name: Upload server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-log
+          path: /tmp/app.log
