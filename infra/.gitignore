@@ -1,0 +1,31 @@
+# ───────────────────────────────
+# Terraform working directory
+# ───────────────────────────────
+.terraform/
+.terraform.lock.hcl
+
+# ───────────────────────────────
+# State files (機密情報を含む)
+# ───────────────────────────────
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ───────────────────────────────
+# Local variables or plan files
+# ───────────────────────────────
+*.tfvars
+*.tfvars.json
+*.tfplan
+
+# ───────────────────────────────
+# Miscellaneous
+# ───────────────────────────────
+# VSCode等のローカル設定
+.vscode/
+.idea/
+.DS_Store
