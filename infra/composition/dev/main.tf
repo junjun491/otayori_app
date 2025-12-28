@@ -94,3 +94,15 @@ module "ecs" {
     Project     = "otayori"
   }
 }
+
+module "iam_github_oidc" {
+  source = "../../infrastructure_modules/iam_github_oidc"
+
+  name_prefix       = "otayori-dev"
+  github_repository = "OWNER/REPO" # ← ここを自分の GitHub リポジトリに変更 (例: "nakaseatsushi/otayori-app")
+
+  tags = {
+    Environment = "dev"
+    Project     = "otayori"
+  }
+}
