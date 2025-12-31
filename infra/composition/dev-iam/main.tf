@@ -30,7 +30,7 @@ locals {
   }
 
   # ★ここを後で自分のrepoに合わせる
-  repo   = "junjun491/otayori_app.git"
+  repo   = "junjun491/otayori_app"
   branch = "main"
 }
 
