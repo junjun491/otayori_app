@@ -5,8 +5,10 @@ RUN apt-get update -qq && apt-get install -y \
   build-essential \
   libpq-dev \
   nodejs \
-  yarn \
   postgresql-client
+
+# yarn は corepack 経由で入れる（Node 16+）
+RUN corepack enable
 
 # 作業ディレクトリを作成
 WORKDIR /app
