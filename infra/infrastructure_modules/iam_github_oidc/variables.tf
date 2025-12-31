@@ -5,7 +5,7 @@ variable "name_prefix" {
 
 variable "github_repository" {
   type        = string
-  description = "GitHub リポジトリ (owner/repo)"
+  description = "GitHub リポジトリ (junjun491/otayori_app)"
 }
 
 variable "tags" {
