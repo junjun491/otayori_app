@@ -1,0 +1,49 @@
+name: Build and push images to ECR
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-1
+  AWS_ACCOUNT_ID: "102464981360"
+  BACKEND_REPO: "otayori-backend"
+  FRONTEND_REPO: "otayori-frontend"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        run: |
+          BACKEND_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${BACKEND_REPO}
+          echo "Backend repo: ${BACKEND_URI}"
+          docker build -t ${BACKEND_URI}:dev -t ${BACKEND_URI}:${GITHUB_SHA} -f backend/Dockerfile backend
+          docker push ${BACKEND_URI}:dev
+          docker push ${BACKEND_URI}:${GITHUB_SHA}
+
+      - name: Build and push frontend image
+        run: |
+          FRONTEND_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${FRONTEND_REPO}
+          echo "Frontend repo: ${FRONTEND_URI}"
+          docker build -t ${FRONTEND_URI}:dev -t ${FRONTEND_URI}:${GITHUB_SHA} -f frontend/Dockerfile frontend
+          docker push ${FRONTEND_URI}:dev
+          docker push ${FRONTEND_URI}:${GITHUB_SHA}
