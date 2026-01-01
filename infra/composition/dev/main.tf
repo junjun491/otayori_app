@@ -84,8 +84,8 @@ module "ecs" {
   frontend_tg_arn       = module.alb.target_group_arns["frontend"]
   backend_tg_arn        = module.alb.target_group_arns["backend"]
 
-  backend_image  = "${data.aws_ecr_repository.backend.repository_url}:latest"
-  frontend_image = "${data.aws_ecr_repository.frontend.repository_url}:latest"
+  backend_image  = "${data.aws_ecr_repository.backend.repository_url}:dev"
+  frontend_image = "${data.aws_ecr_repository.frontend.repository_url}:dev"
 
   # DB 接続URLをここで組み立てて渡す
   database_url = format(
