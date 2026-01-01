@@ -11,6 +11,13 @@ development:
   <<: *default
   database: <%= ENV.fetch("DB_NAME", "app_db") %>
 
+production:
+  primary:
+    url: <%= ENV["DATABASE_URL"] %>
+
+  cable:
+    url: <%= ENV["DATABASE_URL"] %>
+
 test:
   <<: *default
   database: <%= ENV.fetch("DB_NAME_TEST", "app_db_test") %>
