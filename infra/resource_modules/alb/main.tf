@@ -50,7 +50,7 @@ resource "aws_lb_target_group" "frontend" {
   target_type = "ip" # Fargate用
 
   health_check {
-    path                = "/"
+    path                = "/api/healthz"
     protocol            = "HTTP"
     matcher             = "200-399"
     healthy_threshold   = 3
