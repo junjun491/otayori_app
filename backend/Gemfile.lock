@@ -344,11 +344,6 @@ GEM
       rubocop (~> 1.72, >= 1.72.1)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
-    solid_cable (3.0.7)
-      actioncable (>= 7.2)
-      activejob (>= 7.2)
-      activerecord (>= 7.2)
-      railties (>= 7.2)
     solid_cache (1.0.7)
       activejob (>= 7.2)
       activerecord (>= 7.2)
@@ -433,7 +428,6 @@ DEPENDENCIES
   rubocop-rails
   rubocop-rails-omakase
   rubocop-rspec
-  solid_cable
   solid_cache
   solid_queue
   thruster
