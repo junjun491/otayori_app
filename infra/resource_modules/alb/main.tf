@@ -43,8 +43,8 @@ resource "aws_lb" "this" {
 
 # フロントエンド用 Target Group
 resource "aws_lb_target_group" "frontend" {
-  name        = "${var.name}-frontend-tg"
-  port        = var.frontend_port
+  name_prefix = "otdfe-"  # ← 固定nameをやめる
+  port        = var.frontend_port        # ← composition側で 3000 にする
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip" # Fargate用
@@ -59,6 +59,10 @@ resource "aws_lb_target_group" "frontend" {
     interval            = 30
   }
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tags = merge(var.tags, {
     Name = "${var.name}-frontend-tg"
   })
@@ -66,11 +70,11 @@ resource "aws_lb_target_group" "frontend" {
 
 # バックエンド用 Target Group
 resource "aws_lb_target_group" "backend" {
-  name        = "${var.name}-backend-tg"
+  name_prefix = "otdbe-"  # ← 固定nameやめる
   port        = var.backend_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-  target_type = "ip" # Fargate用
+  target_type = "ip"
 
   health_check {
     path                = "/healthz"
@@ -80,6 +84,10 @@ resource "aws_lb_target_group" "backend" {
     unhealthy_threshold = 2
     timeout             = 5
     interval            = 30
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 
   tags = merge(var.tags, {
