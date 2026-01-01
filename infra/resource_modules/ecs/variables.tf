@@ -52,3 +52,7 @@ variable "tags" {
   description = "共通タグ"
   type        = map(string)
 }
+
+variable "rails_secret_key_base_secret_arn" {
+  type = string
+}

@@ -46,6 +46,26 @@ resource "aws_iam_role_policy_attachment" "task_execution_basic" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Secrets Manager から SECRET_KEY_BASE を読むための権限
+resource "aws_iam_role_policy" "task_execution_secrets" {
+  name = "${var.name_prefix}-ecs-exec-secrets"
+  role = aws_iam_role.task_execution.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = var.rails_secret_key_base_secret_arn
+      }
+    ]
+  })
+}
+
 # アプリ用タスクロール（現状は特別な権限なし）
 resource "aws_iam_role" "task_role" {
   name               = "${var.name_prefix}-ecs-task-role"
@@ -123,6 +143,13 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "DATABASE_URL"
           value = var.database_url
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "SECRET_KEY_BASE"
+          valueFrom = var.rails_secret_key_base_secret_arn
         }
       ]
 

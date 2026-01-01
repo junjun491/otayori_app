@@ -103,6 +103,8 @@ module "ecs" {
     Environment = "dev"
     Project     = "otayori"
   }
+
+  rails_secret_key_base_secret_arn = "arn:aws:secretsmanager:ap-northeast-1:102464981360:secret:otayori/dev/rails/secret_key_base-XjGrvM"
 }
 
 #module "iam_github_oidc" {

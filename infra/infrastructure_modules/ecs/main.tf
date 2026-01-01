@@ -16,6 +16,8 @@ module "ecs" {
   rds_security_group_id = var.rds_security_group_id
 
   tags = var.tags
+
+  rails_secret_key_base_secret_arn = var.rails_secret_key_base_secret_arn
 }
 
 output "cluster_name" {
