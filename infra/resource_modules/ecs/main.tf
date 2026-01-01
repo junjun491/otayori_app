@@ -117,6 +117,10 @@ resource "aws_ecs_task_definition" "backend" {
           value = "production"
         },
         {
+          name  = "PORT"
+          value = "3001"
+        },
+        {
           name  = "DATABASE_URL"
           value = var.database_url
         }

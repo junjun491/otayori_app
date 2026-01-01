@@ -23,8 +23,8 @@ RUN bundle install
 # ソースコード全体をコピー
 COPY . .
 
-# ポート開放（Railsのデフォルト3000）
-EXPOSE 3000
+# ポート開放
+EXPOSE 3001
 
 # デフォルトコマンド（開発用）
 CMD ["rails", "server", "-b", "0.0.0.0"]
