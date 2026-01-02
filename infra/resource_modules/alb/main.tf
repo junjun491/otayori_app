@@ -124,3 +124,20 @@ resource "aws_lb_listener_rule" "api_to_backend" {
     }
   }
 }
+
+# /healthz は backend へ（Railsのヘルスチェック用）
+resource "aws_lb_listener_rule" "healthz_to_backend" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 5  # 10より小さければOK（他と被らない数字）
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/healthz"]
+    }
+  }
+}
