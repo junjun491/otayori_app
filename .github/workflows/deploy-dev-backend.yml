@@ -1,0 +1,119 @@
+# .github/workflows/deploy-dev-backend.yml
+name: Deploy dev backend (migrate then deploy)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-dev-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-dev-backend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-1
+      CONTAINER_NAME: backend # ✅ backend固定
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run DB migrate (derive network + taskdef from service)
+        env:
+          ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ secrets.ECS_SERVICE_BACKEND }}
+        run: |
+          set -euo pipefail
+
+          # jq を使う（GitHub-hosted runnerには入ってる）
+          command -v jq >/dev/null 2>&1 || (echo "jq not found" && exit 1)
+
+          # 1) Serviceから TaskDefinition ARN と network設定を取得
+          TASK_DEF_ARN=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --region "$AWS_REGION" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          AWSVPC=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --region "$AWS_REGION" \
+            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
+            --output json)
+
+          echo "TASK_DEF_ARN=$TASK_DEF_ARN"
+          echo "AWSVPC=$AWSVPC"
+
+          SUBNETS=$(echo "$AWSVPC" | jq -c '.subnets')
+          SECURITY_GROUPS=$(echo "$AWSVPC" | jq -c '.securityGroups')
+          ASSIGN_PUBLIC_IP=$(echo "$AWSVPC" | jq -r '.assignPublicIp')
+
+          NETCONF=$(jq -cn \
+            --argjson subnets "$SUBNETS" \
+            --argjson sgs "$SECURITY_GROUPS" \
+            --arg ap "$ASSIGN_PUBLIC_IP" \
+            '{awsvpcConfiguration:{subnets:$subnets,securityGroups:$sgs,assignPublicIp:$ap}}')
+
+          echo "NETCONF=$NETCONF"
+          echo "CONTAINER_NAME=$CONTAINER_NAME"
+
+          # 2) one-off task 起動（backendコンテナだけ command を差し替え）
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --launch-type FARGATE \
+            --task-definition "$TASK_DEF_ARN" \
+            --network-configuration "$NETCONF" \
+            --overrides "$(jq -cn --arg name "$CONTAINER_NAME" \
+              '{containerOverrides:[{name:$name,command:["bin/rails","db:migrate"]}]}' \
+            )" \
+            --region "$AWS_REGION" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "TASK_ARN=$TASK_ARN"
+
+          # 3) 完了待ち
+          aws ecs wait tasks-stopped \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --region "$AWS_REGION"
+
+          # 4) exitCodeチェック（失敗なら落とす）
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --region "$AWS_REGION" \
+            --query "tasks[0].containers[?name=='$CONTAINER_NAME'].exitCode | [0]" \
+            --output text)
+
+          echo "MIGRATE_EXIT_CODE=$EXIT_CODE"
+          test "$EXIT_CODE" = "0"
+
+      - name: Deploy backend service (force new deployment)
+        env:
+          ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ secrets.ECS_SERVICE_BACKEND }}
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --force-new-deployment \
+            --region "$AWS_REGION"
