@@ -7,11 +7,21 @@ export async function apiFetch(
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  // base 環境変数は廃止（ローカルは next.config の rewrites、AWSは ALB で /api/* を backend へ）
+  // 呼び出し側は "/teachers/..." でも "/api/teachers/..." でもOKにするため、ここで /api を自動付与
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const apiPath = normalizedPath.startsWith("/api/")
+    ? normalizedPath
+    : `/api${normalizedPath}`;
+
   const token = getToken();
 
   const headers = new Headers(init.headers || {});
-  if (token) headers.set("Authorization", token);
+  // JWTは Authorization: Bearer <token> が基本（もし getToken() が "Bearer ..." を返す設計ならそのままでOK）
+  if (token) {
+    const value = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    headers.set("Authorization", value);
+  }
 
   const hasBody = typeof init.body !== "undefined";
   const isFormData =
@@ -23,9 +33,10 @@ export async function apiFetch(
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
   }
+
   // localStorage運用なので cookie は送らない
   // 将来 HttpOnly クッキーに切替えたら 'include' に変更
-  const res = await fetch(`${base}${path}`, {
+  const res = await fetch(apiPath, {
     ...init,
     headers,
     credentials: "omit",

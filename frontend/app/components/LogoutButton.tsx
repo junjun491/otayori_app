@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { clearToken } from '@/lib/auth';
+import { apiFetch } from "@/lib/api";
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -8,9 +9,8 @@ export default function LogoutButton() {
   const handleLogout = async () => {
     // 1) サーバー側でセッション破棄（任意）
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/teachers/sign_out`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${clearToken()}` },
+      await apiFetch("/teachers/sign_out", {
+        method: "DELETE",
       });
     } catch (e) {
       console.warn('サーバー側ログアウト失敗（無視可能）', e);

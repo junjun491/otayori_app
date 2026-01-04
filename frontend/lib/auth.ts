@@ -1,6 +1,3 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
-
 // 追加: /login自己参照や外部URLを弾く安全な next 抽出
 export function safeNextParam(defaultPath = "/dashboard"): string {
   if (typeof window === "undefined") return defaultPath;

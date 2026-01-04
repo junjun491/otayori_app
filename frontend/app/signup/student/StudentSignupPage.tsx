@@ -7,8 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { TextField, Button, Container, Typography, Box, Alert } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { setToken as saveJwt } from '@/lib/auth';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { apiFetch } from '@/lib/api';
 
 const schema = z
   .object({
@@ -59,8 +58,9 @@ export default function StudentSignupPage() {
 
     (async () => {
       try {
-        const url = `${API_BASE}/classrooms/${encodeURIComponent(c)}/invitations/verify?token=${encodeURIComponent(t)}`;
-        const res = await fetch(url);
+        const res = await apiFetch(
+          `/classrooms/${encodeURIComponent(c)}/invitations/verify?token=${encodeURIComponent(t)}`
+        );
 
         const body = await res.json().catch(() => ({} as any));
 
@@ -80,9 +80,8 @@ export default function StudentSignupPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await fetch(`${API_BASE}/students`, {
+      const res = await apiFetch('/students', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           student: {
             name: data.name,

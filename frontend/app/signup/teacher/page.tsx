@@ -14,6 +14,7 @@ import {
 } from '@mui/material'
 import { useState } from 'react'
 import { setToken } from '@/lib/auth';
+import { apiFetch } from "@/lib/api";
 
 const schema = z.object({
   name: z.string().min(1, '名前は必須です'),
@@ -38,7 +39,7 @@ export default function TeacherSignupPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await fetch('http://localhost:3001/teachers', {
+      const res = await apiFetch("/teachers", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

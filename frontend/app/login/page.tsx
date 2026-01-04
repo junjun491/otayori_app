@@ -7,9 +7,10 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import {
-  API_BASE, getToken, setToken, safeNextParam,
+  getToken, setToken, safeNextParam,
   getRoleFromToken, isTokenExpired, roleAwareNext
 } from '@/lib/auth';
+import { apiFetch } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,10 +43,9 @@ export default function LoginPage() {
       const endpointRole = selectedRole;                 // 'teachers' | 'students'
       const payloadKey = endpointRole.slice(0, -1);      // 'teacher'  | 'student'
 
-      const res = await fetch(`${API_BASE}/${endpointRole}/sign_in`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [payloadKey]: { email, password } }),
+      const res = await apiFetch(`/${endpointRole}/sign_in`, {
+        method: "POST",
+        body: JSON.stringify({[payloadKey]: { email, password }}),
       });
 
       if (!res.ok) {

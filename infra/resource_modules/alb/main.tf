@@ -50,7 +50,7 @@ resource "aws_lb_target_group" "frontend" {
   target_type = "ip" # Fargate用
 
   health_check {
-    path                = "/api/healthz"
+    path                = "/"
     protocol            = "HTTP"
     matcher             = "200-399"
     healthy_threshold   = 3
@@ -77,7 +77,7 @@ resource "aws_lb_target_group" "backend" {
   target_type = "ip"
 
   health_check {
-    path                = "/healthz"
+    path                = "/api/healthz"
     protocol            = "HTTP"
     matcher             = "200-399"
     healthy_threshold   = 3
@@ -121,23 +121,6 @@ resource "aws_lb_listener_rule" "api_to_backend" {
   condition {
     path_pattern {
       values = ["/api/*"]
-    }
-  }
-}
-
-# /healthz は backend へ（Railsのヘルスチェック用）
-resource "aws_lb_listener_rule" "healthz_to_backend" {
-  listener_arn = aws_lb_listener.http.arn
-  priority     = 5  # 10より小さければOK（他と被らない数字）
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/healthz"]
     }
   }
 }
