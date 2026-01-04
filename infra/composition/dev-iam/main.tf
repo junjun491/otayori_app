@@ -114,6 +114,38 @@ resource "aws_iam_role_policy" "ecr_push" {
   policy = data.aws_iam_policy_document.ecr_push.json
 }
 
+# -----------------------------
+# ECS deploy / one-off migrate 用の権限
+# -----------------------------
+
+# TaskDefinition / Service / Task を参照して run-task & update-service できるようにする
+data "aws_iam_policy_document" "ecs_deploy" {
+  statement {
+    actions = [
+      "ecs:DescribeServices",
+      "ecs:DescribeTaskDefinition",
+      "ecs:DescribeTasks",
+      "ecs:ListTasks",
+      "ecs:RunTask",
+      "ecs:UpdateService",
+    ]
+    resources = ["*"]
+  }
+
+  # run-task には iam:PassRole がほぼ必須（TaskExecutionRole/TaskRole を ECS に渡すため）
+  # いったん "*" で通して動かす（あとで最小化する）
+  statement {
+    actions   = ["iam:PassRole"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_deploy" {
+  name   = "${local.name_prefix}-ecs-deploy"
+  role   = aws_iam_role.github_actions.id
+  policy = data.aws_iam_policy_document.ecs_deploy.json
+}
+
 output "github_actions_role_arn" {
   value = aws_iam_role.github_actions.arn
 }
