@@ -1,52 +1,151 @@
-# MyApp: Rails API + Next.js on Kubernetes
+# Otayori App（ポートフォリオ）
 
-## 🏗 セットアップ手順
-https://qiita.com/junjun11111/private/2e6383967e6e6955aed2
+教師と生徒（/保護者）向けのお便り管理アプリ。  
+Rails API + Next.js を AWS ECS/Fargate 上で運用し、Terraform による IaC と  
+GitHub Actions を用いた CI/CD を構築しています。
 
-各imagePullPolicy は Never に設定しているため、ローカルビルドが前提です。
+本 README は **実装と乖離しないこと**を重視し、  
+実際に採用している構成・運用のみを記載しています。
 
-### 前提条件
-- Docker Desktop
-- Minikube
-- kubectl
-- Node.js / Ruby（任意）
+---
 
-### 参考ローカル構成
-├── README.md 
-├── backend #rails
-│   ├── Dockerfile
-│   ├── Gemfile
-│   ├── Gemfile.lock
-│   ├── README.md
-│   ├── Rakefile
-│   ├── app
-│   ├── bin
-│   ├── config
-│   ├── config.ru
-│   ├── db
-│   ├── lib
-│   ├── log
-│   ├── public
-│   ├── script
-│   ├── storage
-│   ├── test
-│   ├── tmp
-│   └── vendor
-├── frontend #react
-│   ├── Dockerfile
-│   ├── README.md
-│   ├── app
-│   ├── next-env.d.ts
-│   ├── next.config.ts
-│   ├── node_modules
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── postcss.config.mjs
-│   ├── public
-│   └── tsconfig.json
-└── k8s
-    ├── backend
-    ├── frontend
-    ├── ingress.yaml
-    └── namespace.yaml
+## 技術スタック
 
+- Frontend: Next.js（App Router）
+- Backend: Ruby on Rails（API）
+- DB: PostgreSQL（RDS）
+- Infra: AWS（ECS/Fargate, ALB, RDS, ECR）
+- IaC: Terraform（S3 + DynamoDB による tfstate 管理）
+- CI/CD: GitHub Actions（OIDC による AWS 認証）
+
+---
+
+## デモ URL
+
+- App: https://app.example.com  
+- Healthcheck: https://app.example.com/healthz
+
+※ コスト対策として、ECS Service の desiredCount を 0 にして停止する運用を行う場合があります。
+
+---
+
+## 機能概要（抜粋）
+
+- 教師 / 生徒のロール選択ログイン（`/login`）
+- JWT を用いた認証
+- フロントエンドとバックエンドを分離した API 設計
+- API パスを `/api/*` に統一
+- `/healthz` によるアプリケーションの死活確認
+
+※ 本 README では構成・運用面にフォーカスし、機能詳細は省略しています。
+
+---
+
+## アーキテクチャ
+
+### 構成図（ALB → Frontend / Backend → RDS）
+
+```mermaid
+flowchart LR
+  U[User Browser] -->|HTTPS| ALB[ALB]
+  ALB -->|/*| FE[ECS Fargate\nNext.js]
+  ALB -->|/api/*| BE[ECS Fargate\nRails API]
+  ALB -->|/healthz| BE
+  BE --> RDS[(RDS PostgreSQL)]
+```
+
+### 構成のポイント
+
+- ALB を **単一の公開入口**として採用
+- パスベースルーティングによる責務分離
+  - `/*` → Next.js（画面配信）
+  - `/api/*` → Rails API
+  - `/healthz` → Rails API
+- RDS は Rails API からのみアクセス可能
+
+---
+
+## フロントエンドと API 通信について
+
+- API リクエスト（`/api/*`）は **ブラウザから直接送信**されます
+- ALB のパスベースルーティングにより Rails API に転送されます
+- **Next.js サーバは API 通信には関与しません**
+  - SSR / Route Handler / BFF 構成は採用していません
+
+---
+
+## CI/CD（backend）
+
+### CI/CD フロー
+
+```mermaid
+flowchart LR
+  Dev[Developer] -->|push main (backend/**)| GH[GitHub Actions]
+  GH -->|OIDC| IAM[AWS IAM Role]
+  GH -->|run-task| MIGRATE[ECS one-off task\nrails db:migrate]
+  GH -->|force new deployment| ECS[ECS Service]
+```
+
+### ポイント
+
+- GitHub Actions から AWS への認証には **OIDC** を利用  
+  - AWS のアクセスキー等の **長期クレデンシャルは使用していません**
+- backend に変更がある場合のみデプロイを実行
+- デプロイ前に **ECS RunTask による one-off migration** を実施
+- migration が失敗した場合はデプロイを中断
+
+---
+
+## DB Migration 運用方針（dev）
+
+### 基本方針
+
+- `backend/**` に変更がある push のたびに migration を実行
+- migration は ECS Service とは別の **one-off task** として実行
+- migration 成功後に ECS Service を更新
+
+### 初回
+
+- 初回も通常と同様に `rails db:migrate` を実行
+- seed は不要方針（必要になった場合は別手順で実行）
+
+---
+
+## ローカル開発構成
+
+- DB: Docker（PostgreSQL）
+- Rails API: Mac ローカル（`:3001`）
+- Next.js: ローカル（`:3000`）
+
+### API 統一方針
+
+- API は `/api/*` に統一
+- ローカル: Next.js rewrites により Rails API に転送
+- 本番: ALB の path-based routing により Rails API に転送
+
+---
+
+## Terraform 構成
+
+- `infra/` 配下で Terraform 管理
+- S3 + DynamoDB による remote state
+- ECS / ALB / RDS / ECR を IaC 化
+
+---
+
+## セキュリティに関する補足
+
+- GitHub Actions から AWS への認証は OIDC + AssumeRole を使用
+- GitHub Secrets には Role ARN や ECS リソース名を保持  
+  - これらは **単体で AWS 操作が可能な情報ではありません**
+- AWS API を実行可能な長期クレデンシャルは GitHub に保存していません
+
+---
+
+## 採用担当者に見てほしいポイント
+
+- Terraform による AWS 本番相当の構成管理
+- ALB を起点とした明確な責務分離（Frontend / Backend）
+- OIDC を用いた GitHub Actions → AWS 認証
+- ECS RunTask を用いた安全な migration 運用
+- README と実装の整合性を重視した設計
