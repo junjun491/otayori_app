@@ -17,10 +17,12 @@ provider "aws" {
 resource "aws_s3_bucket" "tfstate" {
   bucket = var.bucket_name
 
+  #検証に便利なので追加
+  force_destroy = true
   # 誤削除防止（destroyを拒否）
-  lifecycle {
-    prevent_destroy = true
-  }
+  #lifecycle {
+  #  prevent_destroy = true
+  #}
 
   tags = var.tags
 }
@@ -70,9 +72,9 @@ resource "aws_dynamodb_table" "lock" {
   }
 
   # 誤削除防止
-  lifecycle {
-    prevent_destroy = true
-  }
+  #lifecycle {
+  #  prevent_destroy = true
+  #}
 
   tags = var.tags
 }

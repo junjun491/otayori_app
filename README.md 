@@ -4,9 +4,6 @@
 Rails API + Next.js を AWS ECS/Fargate 上で運用し、Terraform による IaC と  
 GitHub Actions を用いた CI/CD を構築しています。
 
-本 README は **実装と乖離しないこと**を重視し、  
-実際に採用している構成・運用のみを記載しています。
-
 ---
 
 ## 技術スタック
@@ -17,15 +14,6 @@ GitHub Actions を用いた CI/CD を構築しています。
 - Infra: AWS（ECS/Fargate, ALB, RDS, ECR）
 - IaC: Terraform（S3 + DynamoDB による tfstate 管理）
 - CI/CD: GitHub Actions（OIDC による AWS 認証）
-
----
-
-## デモ URL
-
-- App: https://app.example.com  
-- Healthcheck: https://app.example.com/healthz
-
-※ コスト対策として、ECS Service の desiredCount を 0 にして停止する運用を行う場合があります。
 
 ---
 
@@ -71,6 +59,72 @@ flowchart LR
 - ALB のパスベースルーティングにより Rails API に転送されます
 - **Next.js サーバは API 通信には関与しません**
   - SSR / Route Handler / BFF 構成は採用していません
+
+### ローカル開発と本番環境における API 通信設計
+
+本アプリケーションでは、ローカル開発環境と本番環境で
+API 通信の責務を明確に分離しています。
+
+#### ローカル開発環境（Next.js rewrites）
+
+ローカルでは Next.js の `rewrites` 機能を利用し、
+フロントエンドが Rails API へのリバースプロキシとして振る舞います。
+
+通信経路は以下の通りです。
+
+```
+  Browser
+    ↓
+  Next.js（localhost:3000）
+    ↓ rewrites
+  Rails API（localhost:3001）
+```
+
+この構成により、以下を実現しています。
+
+- ブラウザからは常に同一オリジン（localhost:3000）で API を呼び出せる
+- CORS 設定を不要にし、JWT Cookie を用いた認証確認を容易にする
+- フロントエンドとバックエンドを分離したまま、開発体験を簡潔に保つ
+
+rewrites の設定は以下の通りです（ローカル開発用）。
+
+  frontend/next.config.ts（抜粋）
+    async rewrites() {
+      return [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:3001/api/:path*",
+        },
+      ];
+    }
+
+#### 本番環境（ALB によるパスベースルーティング）
+
+本番環境では Application Load Balancer（ALB）が単一の公開入口となり、
+パスベースルーティングにより Frontend / Backend を振り分けています。
+
+ALB のルーティング設定は Terraform で管理しており、
+以下のファイルに定義しています。
+
+- infra/resource_modules/alb/main.tf
+
+設定の要点は次の通りです。
+
+- ALB Listener の default action により、デフォルトは Frontend（Next.js）へ転送
+- `/api/*` のみ Backend（Rails API）へ転送する Listener Rule を定義
+- `/api/*` のルールは priority を明示的に設定し、`/*` より優先されるように制御
+
+通信の流れは以下の通りです。
+
+```
+  ALB Listener (80)
+    ├ default: forward → frontend target group（/*）
+    └ rule (priority=10, /api/*): forward → backend target group
+```
+
+このように、ローカルでは Next.js が ALB の代役として API を中継し、
+本番ではその責務を ALB に戻すことで、
+開発体験と本番構成の整合性を両立しています。
 
 ---
 
@@ -122,6 +176,173 @@ flowchart LR
 - API は `/api/*` に統一
 - ローカル: Next.js rewrites により Rails API に転送
 - 本番: ALB の path-based routing により Rails API に転送
+
+---
+## 起動方法（ローカル開発）
+
+ローカル開発では、DB のみ Docker で起動し、  
+Rails API と Next.js は Mac ローカルで起動します。
+
+### 1. DB（PostgreSQL）の起動
+
+```bash
+cd backend
+docker compose up -d
+```
+
+PostgreSQL コンテナが起動していることを確認します。
+
+```bash
+docker ps
+```
+
+---
+
+### 2. Rails API の起動（:3001）
+
+```bash
+cd backend
+bundle install
+bin/rails db:prepare
+bin/rails s -p 3001
+```
+
+起動後、以下にアクセスして疎通確認します。
+
+```bash
+curl http://localhost:3001/healthz
+```
+
+`200 OK` が返れば正常です。
+
+---
+
+### 3. Next.js の起動（:3000）
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+ブラウザで以下にアクセスします。
+
+- http://localhost:3000/login
+
+---
+## 起動方法（AWS / dev 環境）
+
+本プロジェクトの dev 環境は、Terraform により構築した  
+ECS(Fargate) + ALB 構成上で起動します。
+
+---
+
+### 1. Terraform apply（インフラ反映）
+
+dev 環境の composition ディレクトリで Terraform を実行します。
+
+```
+cd infra/composition/dev
+
+terraform init
+terraform plan
+terraform apply
+```
+
+※ ECS Service の `desired_count` が 1 の場合、この時点で  
+frontend / backend のタスクが起動します。
+
+---
+
+### 2. アクセス用 URL（ALB DNS）の確認
+
+AWS CLI を用いて ALB の DNS 名を確認します。
+
+```
+aws elbv2 describe-load-balancers \
+  --query 'LoadBalancers[*].{Name:LoadBalancerName,DNS:DNSName}'
+```
+
+出力例：
+
+```
+[
+  {
+    "Name": "otayori-dev-alb",
+    "DNS": "otayori-dev-alb-xxxxxxxx.ap-northeast-1.elb.amazonaws.com"
+  }
+]
+```
+
+この `DNS` がアプリケーションのアクセス先 URL です。
+
+```
+http://otayori-dev-alb-xxxxxxxx.ap-northeast-1.elb.amazonaws.com
+```
+
+---
+
+### 3. 動作確認（CLI）
+
+#### backend（Rails API）の確認
+
+```
+curl -i http://<ALB_DNS>/healthz
+```
+
+期待結果：
+
+```
+HTTP/1.1 200 OK
+```
+
+- 確認中
+
+---
+
+#### frontend（Next.js）の確認
+
+```
+curl -i http://<ALB_DNS>/login
+```
+
+- 確認中
+
+---
+
+### 4. ブラウザでの確認
+
+ブラウザで以下にアクセスします。
+
+```
+http://<ALB_DNS>/login
+```
+
+確認ポイント：
+- ログイン画面が表示されること
+- API 通信エラー（Failed to fetch 等）が発生しないこと
+
+---
+
+### 5. トラブルシュート（簡易）
+
+#### `/healthz` が通らない場合
+- ALB Listener Rule が `/healthz → backend` になっているか
+- Target Group の health check path が `/healthz` になっているか
+- backend ECS task が `RUNNING` になっているか
+
+#### `/login` は表示されるが API が失敗する場合
+- ALB の `/api/* → backend` ルーティング確認
+- Next.js の rewrites が本番環境で localhost を向いていないこと
+- CORS 設定（ブラウザのみ失敗する場合）
+
+---
+
+### ローカルでの API 通信について
+
+- フロントエンドからの API リクエストは `/api/*` に統一しています
+- ローカル環境では Next.js の rewrites により Rails API（:3001）へ転送されます
+- 本番環境では ALB のパスベースルーティングにより Rails API へ直接転送されます
 
 ---
 
