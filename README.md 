@@ -210,7 +210,7 @@ bin/rails s -p 3001
 起動後、以下にアクセスして疎通確認します。
 
 ```bash
-curl http://localhost:3001/healthz
+curl http://localhost:3001/api/healthz
 ```
 
 `200 OK` が返れば正常です。
