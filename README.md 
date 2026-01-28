@@ -34,9 +34,9 @@ GitHub Actions を用いた CI/CD を構築しています。
 ### 1. 教師アカウントの登録
 
 - URL  
-  @@@
+  ```
   http://localhost:3000/signup/teacher
-  @@@
+  ```
 
 1. 上記 URL にアクセス  
 2. メールアドレス・パスワードを入力して登録  
@@ -47,9 +47,9 @@ GitHub Actions を用いた CI/CD を構築しています。
 ### 2. ログイン方法
 
 - URL  
-  @@@
+  ```
   http://localhost:3000/login
-  @@@
+  ```
 
 1. ログイン画面で 教師 / 生徒 のロールを選択  
 2. 登録済みのメールアドレス・パスワードでログイン  
@@ -559,9 +559,9 @@ http://<ALB_DNS>/login
 - ローカル開発環境では `.env` ファイルを使用しています
 - 本番環境では Secrets Manager などを用いて安全に注入する想定です
 
-  @@@
+  ```
   SENDGRID_API_KEY=xxxxxxxx
-  @@@
+  ```
 
 ---
 
@@ -572,9 +572,9 @@ http://<ALB_DNS>/login
 - `MAIL_REAL_SEND=true` の場合のみ、実際にメールが送信されます
 - デフォルトでは誤送信防止のため `false` となっています
 
-  @@@
+  ```
   MAIL_REAL_SEND=true
-  @@@
+  ```
 
 ※ 開発環境では実送信を抑止し、本番環境でのみ有効化する運用を想定しています
 
