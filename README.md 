@@ -197,7 +197,7 @@ flowchart LR
 
 ### 初回
 
-- 初回も通常と同様に `rails db:migrate` を実行
+- 初回は別途 `rails db:migrate` を実行
 - seed は不要方針（必要になった場合は別手順で実行）
 
 ---
