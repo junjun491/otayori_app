@@ -347,9 +347,6 @@ terraform output
 
 ECR / IAM が揃った後で、dev 本体スタックを初期化します。
 
-> ECR は `data.aws_ecr_repository` で参照しているため、  
-> **ECR 構築前に init / plan するとエラーになります。**
-
 ```
 cd infra/composition/dev
 terraform init -reconfigure
@@ -366,11 +363,14 @@ terraform plan
 terraform apply
 ```
 
-この時点で以下が確定します。
+この時点で以下が **AWS 上に作成され、値を確認できる** 状態になります。
 
-- ECS Cluster 名
-- ECS Service（backend）名
-- ALB DNS 名
+- ALB DNS 名（アクセス先 URL）
+- ECS Cluster / Service（backend）※ 既に GitHub Secrets に登録済みの場合は、値が正しいことを確認する
+
+補足：
+- Terraform apply 直後は ECS タスク起動と ALB health check が完了するまで、
+  一時的に 503 が返る場合があります（数十秒〜数分で解消することがあります）。
 
 ---
 
