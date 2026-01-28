@@ -274,6 +274,155 @@ ECS(Fargate) + ALB 構成上で起動します。
 
 ---
 
+## AWS 初期構築手順（Terraform / dev 環境）
+
+本プロジェクトでは、Terraform のスタックを以下のように分離しています。
+
+- `bootstrap_remote_state` : Terraform Remote State（S3 / DynamoDB）
+- `composition/dev-ecr`    : ECR（frontend / backend）
+- `composition/dev-iam`    : GitHub Actions 用 IAM（OIDC）
+- `composition/dev`        : アプリ本体（VPC / ALB / ECS / RDS）
+
+それぞれ **独立した Terraform スタック**のため、  
+**各ディレクトリごとに `terraform init` が必要**です。
+
+また、`composition/dev` では ECR を `data` 参照しているため、  
+**ECR → IAM → dev 本体** の順で構築します。
+
+---
+
+### Step 1. Terraform Remote State を構築（bootstrap）
+
+Terraform の state 管理用に S3 + DynamoDB を作成します。
+
+```
+cd infra/bootstrap_remote_state
+terraform init
+terraform apply
+```
+
+---
+
+### Step 2. ECR を構築（dev-ecr）
+
+アプリ本体が参照する ECR リポジトリ（frontend / backend）を作成します。
+
+> `dev-ecr` は dev 本体とは別スタックのため、`terraform init` が必要です。
+
+```
+cd infra/composition/dev-ecr
+terraform init
+terraform apply
+```
+
+作成確認：
+
+```
+aws ecr describe-repositories --query 'repositories[*].repositoryName'
+```
+
+---
+
+### Step 3. IAM（GitHub Actions OIDC）を構築（dev-iam）
+
+GitHub Actions が AWS にアクセスするための IAM Role（OIDC）を作成します。
+
+> `dev-iam` も別スタックのため、`terraform init` が必要です。
+
+```
+cd infra/composition/dev-iam
+terraform init
+terraform apply
+```
+
+作成後、GitHub Secrets に登録するために Role ARN を取得します。
+
+```
+terraform output
+```
+
+---
+
+### Step 4. dev 本体スタックを Remote State に接続（init）
+
+ECR / IAM が揃った後で、dev 本体スタックを初期化します。
+
+> ECR は `data.aws_ecr_repository` で参照しているため、  
+> **ECR 構築前に init / plan するとエラーになります。**
+
+```
+cd infra/composition/dev
+terraform init -reconfigure
+terraform plan
+```
+
+---
+
+### Step 5. dev 本体を構築（VPC / ALB / ECS / RDS）
+
+アプリケーション本体の AWS リソースを作成します。
+
+```
+terraform apply
+```
+
+この時点で以下が確定します。
+
+- ECS Cluster 名
+- ECS Service（backend）名
+- ALB DNS 名
+
+---
+
+### Step 6. GitHub Actions Secrets を登録
+
+GitHub Actions が AWS/ECS を操作するために Secrets を登録します。
+
+登録場所：
+
+GitHub → Repository → Settings → Secrets and variables → Actions → Repository secrets
+
+#### 登録する Secrets と意味
+
+- `AWS_ROLE_ARN`  
+  GitHub Actions が OIDC で AssumeRole する **IAM Role の ARN**。  
+  `dev-iam` の `terraform output` で取得した値を設定します。  
+  **初期構築時や IAM を作り直した場合は必ず変更が必要**です。
+
+- `ECS_CLUSTER`  
+  デプロイ対象となる **ECS Cluster 名（または ARN）**。
+
+- `ECS_SERVICE_BACKEND`  
+  デプロイ対象となる **backend ECS Service 名（または ARN）**。
+
+---
+
+### Step 7. CI/CD 実行と疎通確認
+
+GitHub Actions の workflow  
+`Deploy dev backend (migrate then deploy)` を手動実行し、以下を確認します。
+
+- OIDC による AWS 認証が成功する
+- one-off migration が成功する
+- ECS Service が更新される
+
+ALB 経由で疎通確認：
+
+```
+aws elbv2 describe-load-balancers \
+  --query 'LoadBalancers[*].{Name:LoadBalancerName,DNS:DNSName}'
+```
+
+```
+curl -i http://<ALB_DNS>/healthz
+curl -i http://<ALB_DNS>/login
+```
+
+- `/healthz` が `200` → backend 正常
+- `/login` が `200 / 302` → frontend 正常
+
+---
+
 ### 1. Terraform apply（インフラ反映）
 
 dev 環境の composition ディレクトリで Terraform を実行します。
@@ -397,6 +546,37 @@ http://<ALB_DNS>/login
 - GitHub Secrets には Role ARN や ECS リソース名を保持  
   - これらは **単体で AWS 操作が可能な情報ではありません**
 - AWS API を実行可能な長期クレデンシャルは GitHub に保存していません
+
+---
+
+## メール送信（SendGrid）について
+
+本アプリケーションでは、メール送信に SendGrid を利用しています。
+
+### 認証情報の管理
+
+- SendGrid の API Key（パスワード相当）は **環境変数で管理**しています
+- ローカル開発環境では `.env` ファイルを使用しています
+- 本番環境では Secrets Manager などを用いて安全に注入する想定です
+
+  @@@
+  SENDGRID_API_KEY=xxxxxxxx
+  @@@
+
+---
+
+### メール送信の有効 / 無効切り替え
+
+- 本システムでは、**環境変数 `MAIL_REAL_SEND`** によって  
+  メールの実送信を制御しています
+- `MAIL_REAL_SEND=true` の場合のみ、実際にメールが送信されます
+- デフォルトでは誤送信防止のため `false` となっています
+
+  @@@
+  MAIL_REAL_SEND=true
+  @@@
+
+※ 開発環境では実送信を抑止し、本番環境でのみ有効化する運用を想定しています
 
 ---
 
