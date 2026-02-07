@@ -161,36 +161,34 @@ DB migration と ECS Service の再起動を行います。
 flowchart LR
   Dev[Developer] -->|git push main| GH[GitHub Actions]
   GH -->|OIDC| IAM[AWS IAM Role]
-  GH -->|build & push| ECR[ECR<br/>Docker Image]
+  GH -->|build & push| ECR[ECR Docker Image]
 ```
 
 - `main` ブランチへの push を起点に GitHub Actions が起動します
 - OIDC により AWS IAM Role を Assume します
 - backend の Docker イメージを build し、ECR に push します
-- この時点では **ECS はまだ更新されません**
 
 ### backend 配下の変更を伴う git push 時の CD（migrate → deploy）
 
+※ 前提：上記 CI により **最新の Docker イメージが ECR に push 済み**
+
 ```mermaid
 flowchart LR
-  Dev[Developer] -->|git push main<br/>(backend change)| GH[GitHub Actions]
-  GH -->|OIDC| IAM[AWS IAM Role]
-  GH -->|build & push| ECR[ECR<br/>Docker Image]
-  GH -->|run task| MIGRATE[ECS one-off task<br/>rails db:migrate]
+  GH[GitHub Actions] -->|run task| MIGRATE[ECS one-off task]
+  MIGRATE -->|rails db:migrate| DB[(RDS)]
   GH -->|force new deployment| ECS[ECS Service]
-  ECR -->|pull on task start| MIGRATE
+  ECR[ECR Docker Image] -->|pull on task start| MIGRATE
   ECR -->|pull on task start| ECS
 ```
 
 #### 処理の流れ
 
 1. `backend/**` 配下に変更を含む `git push` を検知して GitHub Actions が起動
-2. backend の Docker イメージを build し、ECR に push
-3. **ECR 上の Docker イメージ**を用いて  
+2. **ECR 上の Docker イメージ**を用いて  
    ECS RunTask により `rails db:migrate` を実行
-4. migration 成功後、ECS Service を  
+3. migration 成功後、ECS Service を  
    `force new deployment` により再起動
-5. ECS は **新しいタスク起動時に ECR から最新イメージを pull** して起動
+4. ECS は **新しいタスク起動時に ECR から最新イメージを pull** して起動
 
 ### ポイント
 
