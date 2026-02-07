@@ -171,10 +171,10 @@ ALB のルーティング設定は Terraform で管理しており、
 
 ```mermaid
 flowchart LR
-  Dev[Developer] -->|push main (backend/**)| GH[GitHub Actions]
+  Dev[Developer] -->|push main| GH[GitHub Actions]
   GH -->|OIDC| IAM[AWS IAM Role]
-  GH -->|run-task| MIGRATE[ECS one-off task\nrails db:migrate]
-  GH -->|force new deployment| ECS[ECS Service]
+  GH -->|run task| MIGRATE[ECS one-off task<br/>rails db:migrate]
+  GH -->|deploy| ECS[ECS Service]
 ```
 
 ### ポイント
