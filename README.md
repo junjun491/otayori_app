@@ -109,17 +109,22 @@ API 通信の責務を明確に分離しています。
 - CORS 設定を不要にし、JWT Cookie を用いた認証確認を容易にする
 - フロントエンドとバックエンドを分離したまま、開発体験を簡潔に保つ
 
-rewrites の設定は以下の通りです（ローカル開発用）。
+rewrites の設定は以下の通りです（**ローカル開発環境用**）。
 
-frontend/next.config.ts（抜粋）
-async rewrites() {
-return [
-{
-source: "/api/:path*",
-destination: "http://localhost:3001/api/:path*",
-},
-];
-}
+### frontend/next.config.ts（抜粋）
+
+```ts
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:3001/api/:path*",
+      },
+    ];
+  },
+};
+```
 
 #### 本番環境（ALB によるパスベースルーティング）
 
