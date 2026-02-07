@@ -111,9 +111,7 @@ API 通信の責務を明確に分離しています。
 
 rewrites の設定は以下の通りです（**ローカル開発環境用**）。
 
-### frontend/next.config.ts（抜粋）
-
-```ts
+```frontend/next.config.ts（抜粋）
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
