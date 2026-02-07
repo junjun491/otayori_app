@@ -202,19 +202,6 @@ flowchart LR
   `force new deployment` により  
   **最新のイメージを確実に反映**しています
 
-## DB Migration 運用方針（dev）
-
-### 基本方針
-
-- `backend/**` に変更がある push のたびに migration を実行
-- migration は ECS Service とは別の **one-off task** として実行
-- migration 成功後に ECS Service を更新
-
-### 初回
-
-- 初回は別途 `rails db:migrate` を実行
-- seed は不要方針（必要になった場合は別手順で実行）
-
 ## ローカル開発構成
 
 - DB: Docker（PostgreSQL）
