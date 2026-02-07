@@ -156,27 +156,41 @@ ALB のルーティング設定は Terraform で管理しており、
 ```mermaid
 flowchart LR
   Dev[Developer] -->|push main| GH[GitHub Actions]
+
   GH -->|OIDC| IAM[AWS IAM Role]
+
+  GH -->|build & push| ECR[ECR<br/>Docker Image]
+
   GH -->|run task| MIGRATE[ECS one-off task<br/>rails db:migrate]
-  GH -->|deploy| ECS[ECS Service]
+
+  GH -->|deploy<br/>force new deployment| ECS[ECS Service]
+
+  ECR -->|pull on task start| MIGRATE
+  ECR -->|pull on task start| ECS
 ```
 
 ### 処理の流れ（概要）
 
 1. Developer が `main` ブランチへ push
-2. GitHub Actions が起動
-3. OIDC により AWS IAM Role を Assume
-4. **ECR に push 済みの Docker イメージ**を用いて  
+2. GitHub Actions が起動し、OIDC により AWS IAM Role を Assume
+3. backend の Docker イメージを build し、ECR に push
+4. **ECR 上の Docker イメージ**を用いて  
    ECS RunTask により `rails db:migrate` を実行
-5. migration 成功後、ECS Service を `force new deployment` により再起動
+5. migration 成功後、ECS Service を  
+   `force new deployment` により再起動
+6. ECS は **新しいタスク起動時に ECR から最新イメージを pull** して起動
 
 ### ポイント
 
 - GitHub Actions から AWS への認証には **OIDC** を利用
   - AWS のアクセスキー等の **長期クレデンシャルは使用していません**
-- `backend/**` に変更がある場合のみデプロイを実行
+- `backend/**` に変更がある場合のみ CI/CD を実行
 - デプロイ前に **ECS RunTask による one-off migration** を実施
-- migration が失敗した場合は **デプロイを中断**
+- migration が失敗した場合は  
+  **ECS Service を更新せずデプロイを中断**
+- ECS は **タスク起動時に ECR から Docker イメージを pull** するため、  
+  `force new deployment` により  
+  **最新のイメージを確実に反映**しています
 
 ### Docker イメージとデプロイの関係
 
