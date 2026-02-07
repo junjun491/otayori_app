@@ -177,13 +177,36 @@ flowchart LR
   GH -->|deploy| ECS[ECS Service]
 ```
 
+### 処理の流れ（概要）
+
+1. Developer が `main` ブランチへ push
+2. GitHub Actions が起動
+3. OIDC により AWS IAM Role を Assume
+4. **ECR に push 済みの Docker イメージ**を用いて  
+   ECS RunTask により `rails db:migrate` を実行
+5. migration 成功後、ECS Service を `force new deployment` により再起動
+
+---
+
 ### ポイント
 
 - GitHub Actions から AWS への認証には **OIDC** を利用
   - AWS のアクセスキー等の **長期クレデンシャルは使用していません**
-- backend に変更がある場合のみデプロイを実行
+- `backend/**` に変更がある場合のみデプロイを実行
 - デプロイ前に **ECS RunTask による one-off migration** を実施
-- migration が失敗した場合はデプロイを中断
+- migration が失敗した場合は **デプロイを中断**
+
+---
+
+### Docker イメージとデプロイの関係
+
+- GitHub Actions の別 workflow により、  
+  `git push` をトリガーとして **Docker イメージを build & ECR に push** しています
+- ECS は **新しいタスクの起動時**に、  
+  Task Definition に指定された Docker イメージを **ECR から pull** します
+- 本プロジェクトでは `force new deployment` を用いることで、  
+  ECS Service のタスクを再起動し、  
+  **ECR に push 済みの最新イメージを反映**しています
 
 ---
 
