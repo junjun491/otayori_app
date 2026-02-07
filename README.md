@@ -177,8 +177,6 @@ flowchart LR
   GH[GitHub Actions] -->|run task| MIGRATE[ECS one-off task]
   MIGRATE -->|rails db:migrate| DB[(RDS)]
   GH -->|force new deployment| ECS[ECS Service]
-  ECR[ECR Docker Image] -->|pull on task start| MIGRATE
-  ECR -->|pull on task start| ECS
 ```
 
 #### 処理の流れ
