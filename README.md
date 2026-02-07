@@ -4,8 +4,6 @@
 Rails API + Next.js を AWS ECS/Fargate 上で運用し、Terraform による IaC と  
 GitHub Actions を用いた CI/CD を構築しています。
 
----
-
 ## 技術スタック
 
 - Frontend: Next.js（App Router）
@@ -14,8 +12,6 @@ GitHub Actions を用いた CI/CD を構築しています。
 - Infra: AWS（ECS/Fargate, ALB, RDS, ECR）
 - IaC: Terraform（S3 + DynamoDB による tfstate 管理）
 - CI/CD: GitHub Actions（OIDC による AWS 認証）
-
----
 
 ## 機能概要（抜粋）
 
@@ -26,8 +22,6 @@ GitHub Actions を用いた CI/CD を構築しています。
 - `/healthz` によるアプリケーションの死活確認
 
 ※ 本 README では構成・運用面にフォーカスし、機能詳細は省略しています。
-
----
 
 ## 使い方（デモ操作）
 
@@ -42,8 +36,6 @@ GitHub Actions を用いた CI/CD を構築しています。
 2. メールアドレス・パスワードを入力して登録
 3. 登録完了後、教師ダッシュボードへ遷移します
 
----
-
 ### 2. ログイン方法
 
 - URL
@@ -55,16 +47,12 @@ GitHub Actions を用いた CI/CD を構築しています。
 2. 登録済みのメールアドレス・パスワードでログイン
 3. ロールに応じた画面へ遷移します
 
----
-
 ### 3. 生徒アカウントの招待
 
 1. 教師としてログイン
 2. ダッシュボードから「生徒を招待」を選択
 3. 生徒のメールアドレスを入力
 4. 招待メール経由で生徒アカウントを作成・参加できます
-
----
 
 ## アーキテクチャ
 
@@ -87,8 +75,6 @@ flowchart LR
   - `/api/*` → Rails API
   - `/healthz` → Rails API
 - RDS は Rails API からのみアクセス可能
-
----
 
 ## フロントエンドと API 通信について
 
@@ -163,8 +149,6 @@ ALB のルーティング設定は Terraform で管理しており、
 本番ではその責務を ALB に戻すことで、
 開発体験と本番構成の整合性を両立しています。
 
----
-
 ## CI/CD（backend）
 
 ### CI/CD フロー
@@ -186,8 +170,6 @@ flowchart LR
    ECS RunTask により `rails db:migrate` を実行
 5. migration 成功後、ECS Service を `force new deployment` により再起動
 
----
-
 ### ポイント
 
 - GitHub Actions から AWS への認証には **OIDC** を利用
@@ -195,8 +177,6 @@ flowchart LR
 - `backend/**` に変更がある場合のみデプロイを実行
 - デプロイ前に **ECS RunTask による one-off migration** を実施
 - migration が失敗した場合は **デプロイを中断**
-
----
 
 ### Docker イメージとデプロイの関係
 
@@ -207,8 +187,6 @@ flowchart LR
 - 本プロジェクトでは `force new deployment` を用いることで、  
   ECS Service のタスクを再起動し、  
   **ECR に push 済みの最新イメージを反映**しています
-
----
 
 ## DB Migration 運用方針（dev）
 
@@ -223,8 +201,6 @@ flowchart LR
 - 初回は別途 `rails db:migrate` を実行
 - seed は不要方針（必要になった場合は別手順で実行）
 
----
-
 ## ローカル開発構成
 
 - DB: Docker（PostgreSQL）
@@ -236,8 +212,6 @@ flowchart LR
 - API は `/api/*` に統一
 - ローカル: Next.js rewrites により Rails API に転送
 - 本番: ALB の path-based routing により Rails API に転送
-
----
 
 ## 起動方法（ローカル開発）
 
@@ -257,8 +231,6 @@ PostgreSQL コンテナが起動していることを確認します。
 docker ps
 ```
 
----
-
 ### 2. Rails API の起動（:3001）
 
 ```bash
@@ -276,8 +248,6 @@ curl http://localhost:3001/api/healthz
 
 `200 OK` が返れば正常です。
 
----
-
 ### 3. Next.js の起動（:3000）
 
 ```bash
@@ -290,14 +260,10 @@ npm run dev
 
 - http://localhost:3000/login
 
----
-
 ## 起動方法（AWS / dev 環境）
 
 本プロジェクトの dev 環境は、Terraform により構築した  
 ECS(Fargate) + ALB 構成上で起動します。
-
----
 
 ## AWS 初期構築手順（Terraform / dev 環境）
 
@@ -314,8 +280,6 @@ ECS(Fargate) + ALB 構成上で起動します。
 また、`composition/dev` では ECR を `data` 参照しているため、  
 **ECR → IAM → dev 本体** の順で構築します。
 
----
-
 ### Step 1. Terraform Remote State を構築（bootstrap）
 
 Terraform の state 管理用に S3 + DynamoDB を作成します。
@@ -325,8 +289,6 @@ cd infra/bootstrap_remote_state
 terraform init
 terraform apply
 ```
-
----
 
 ### Step 2. ECR を構築（dev-ecr）
 
@@ -346,8 +308,6 @@ terraform apply
 aws ecr describe-repositories --query 'repositories[*].repositoryName'
 ```
 
----
-
 ### Step 3. IAM（GitHub Actions OIDC）を構築（dev-iam）
 
 GitHub Actions が AWS にアクセスするための IAM Role（OIDC）を作成します。
@@ -366,8 +326,6 @@ terraform apply
 terraform output
 ```
 
----
-
 ### Step 4. dev 本体スタックを Remote State に接続（init）
 
 ECR / IAM が揃った後で、dev 本体スタックを初期化します。
@@ -377,8 +335,6 @@ cd infra/composition/dev
 terraform init -reconfigure
 terraform plan
 ```
-
----
 
 ### Step 5. dev 本体を構築（VPC / ALB / ECS / RDS）
 
@@ -397,8 +353,6 @@ terraform apply
 
 - Terraform apply 直後は ECS タスク起動と ALB health check が完了するまで、
   一時的に 503 が返る場合があります（数十秒〜数分で解消することがあります）。
-
----
 
 ### Step 6. GitHub Actions Secrets を登録
 
@@ -420,8 +374,6 @@ GitHub → Repository → Settings → Secrets and variables → Actions → Rep
 
 - `ECS_SERVICE_BACKEND`  
   デプロイ対象となる **backend ECS Service 名（または ARN）**。
-
----
 
 ### Step 7. CI/CD 実行と疎通確認
 
@@ -447,15 +399,11 @@ curl -i http://<ALB_DNS>/login
 - `/healthz` が `200` → backend 正常
 - `/login` が `200 / 302` → frontend 正常
 
----
-
 ### ローカルでの API 通信について
 
 - フロントエンドからの API リクエストは `/api/*` に統一しています
 - ローカル環境では Next.js の rewrites により Rails API（:3001）へ転送されます
 - 本番環境では ALB のパスベースルーティングにより Rails API へ直接転送されます
-
----
 
 ## Terraform 構成
 
@@ -463,16 +411,12 @@ curl -i http://<ALB_DNS>/login
 - S3 + DynamoDB による remote state
 - ECS / ALB / RDS / ECR を IaC 化
 
----
-
 ## セキュリティに関する補足
 
 - GitHub Actions から AWS への認証は OIDC + AssumeRole を使用
 - GitHub Secrets には Role ARN や ECS リソース名を保持
   - これらは **単体で AWS 操作が可能な情報ではありません**
 - AWS API を実行可能な長期クレデンシャルは GitHub に保存していません
-
----
 
 ## メール送信（SendGrid）について
 
@@ -488,8 +432,6 @@ curl -i http://<ALB_DNS>/login
   SENDGRID_API_KEY=xxxxxxxx
   ```
 
----
-
 ### メール送信の有効 / 無効切り替え
 
 - 本システムでは、**環境変数 `MAIL_REAL_SEND`** によって  
@@ -502,8 +444,6 @@ curl -i http://<ALB_DNS>/login
   ```
 
 ※ 開発環境では実送信を抑止し、本番環境でのみ有効化する運用を想定しています
-
----
 
 ## 採用担当者に見てほしいポイント
 
