@@ -151,56 +151,60 @@ ALB のルーティング設定は Terraform で管理しており、
 
 ## CI/CD（backend）
 
-### CI/CD フロー
+本プロジェクトでは、`git push` を起点として Docker イメージを ECR に push し、  
+**backend 配下に変更が含まれる場合のみ**  
+DB migration と ECS Service の再起動を行います。
+
+### git push 時の CI（Docker build & push）
 
 ```mermaid
 flowchart LR
-  Dev[Developer] -->|push main| GH[GitHub Actions]
-
+  Dev[Developer] -->|git push main| GH[GitHub Actions]
   GH -->|OIDC| IAM[AWS IAM Role]
-
   GH -->|build & push| ECR[ECR<br/>Docker Image]
+```
 
+- `main` ブランチへの push を起点に GitHub Actions が起動します
+- OIDC により AWS IAM Role を Assume します
+- backend の Docker イメージを build し、ECR に push します
+- この時点では **ECS はまだ更新されません**
+
+### backend 配下の変更を伴う git push 時の CD（migrate → deploy）
+
+```mermaid
+flowchart LR
+  Dev[Developer] -->|git push main<br/>(backend change)| GH[GitHub Actions]
+  GH -->|OIDC| IAM[AWS IAM Role]
+  GH -->|build & push| ECR[ECR<br/>Docker Image]
   GH -->|run task| MIGRATE[ECS one-off task<br/>rails db:migrate]
-
-  GH -->|deploy<br/>force new deployment| ECS[ECS Service]
-
+  GH -->|force new deployment| ECS[ECS Service]
   ECR -->|pull on task start| MIGRATE
   ECR -->|pull on task start| ECS
 ```
 
-### 処理の流れ（概要）
+#### 処理の流れ
 
-1. Developer が `main` ブランチへ push
-2. GitHub Actions が起動し、OIDC により AWS IAM Role を Assume
-3. backend の Docker イメージを build し、ECR に push
-4. **ECR 上の Docker イメージ**を用いて  
+1. `backend/**` 配下に変更を含む `git push` を検知して GitHub Actions が起動
+2. backend の Docker イメージを build し、ECR に push
+3. **ECR 上の Docker イメージ**を用いて  
    ECS RunTask により `rails db:migrate` を実行
-5. migration 成功後、ECS Service を  
+4. migration 成功後、ECS Service を  
    `force new deployment` により再起動
-6. ECS は **新しいタスク起動時に ECR から最新イメージを pull** して起動
+5. ECS は **新しいタスク起動時に ECR から最新イメージを pull** して起動
 
 ### ポイント
 
 - GitHub Actions から AWS への認証には **OIDC** を利用
   - AWS のアクセスキー等の **長期クレデンシャルは使用していません**
-- `backend/**` に変更がある場合のみ CI/CD を実行
-- デプロイ前に **ECS RunTask による one-off migration** を実施
+- `backend/**` に変更がある場合のみ  
+  **migration と ECS Service の更新**を行います
+- DB migration は ECS Service とは別に  
+  **one-off task（ECS RunTask）**として実行します
 - migration が失敗した場合は  
-  **ECS Service を更新せずデプロイを中断**
-- ECS は **タスク起動時に ECR から Docker イメージを pull** するため、  
+  **ECS Service を更新せずデプロイを中断**します
+- ECS は **タスク起動時に ECR から Docker イメージを pull**するため、  
   `force new deployment` により  
   **最新のイメージを確実に反映**しています
-
-### Docker イメージとデプロイの関係
-
-- GitHub Actions の別 workflow により、  
-  `git push` をトリガーとして **Docker イメージを build & ECR に push** しています
-- ECS は **新しいタスクの起動時**に、  
-  Task Definition に指定された Docker イメージを **ECR から pull** します
-- 本プロジェクトでは `force new deployment` を用いることで、  
-  ECS Service のタスクを再起動し、  
-  **ECR に push 済みの最新イメージを反映**しています
 
 ## DB Migration 運用方針（dev）
 
