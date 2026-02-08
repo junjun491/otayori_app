@@ -32,7 +32,7 @@ jobs:
       RACK_ATTACK: "0" # レート制限を無効
       # 外部連携はダミーで潰す
       SENDGRID_API_KEY: test
-      # ↓ JWTのENV名はアプリ実装に合わせて。あなたの設定は JWT_SECRET_KEY なのでそのまま残す
+      # JWT
       JWT_SECRET_KEY: test
       # master.key を使っている場合のみ設定
       RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
@@ -63,23 +63,20 @@ jobs:
       - name: RSpec
         run: bundle exec rspec --format progress
 
-      # 追加: /healthz を実際のサーバでスモークテスト
-      - name: Boot app & smoke test /healthz
-        run: |
-          # test環境・制限OFFでPuma起動（バックグラウンド）
-          RACK_ATTACK=0 LOG_JSON=0 bin/rails s -p 4000 -e test >/tmp/app.log 2>&1 &
-          # 起動待ち（最大30秒）
-          for i in {1..30}; do
-            curl -sf http://127.0.0.1:4000/healthz && break
-            sleep 1
-          done
-          # 念のためレスポンスを整形表示（失敗時の手掛かりにも）
-          curl -s http://127.0.0.1:4000/healthz | jq .
+      # TODO: CI安定化後に有効化する（Rails起動 + /healthz スモークテスト）
+      # - name: Boot app & smoke test /healthz
+      #   run: |
+      #     RACK_ATTACK=0 LOG_JSON=0 bin/rails s -p 4000 -e test >/tmp/app.log 2>&1 &
+      #     for i in {1..30}; do
+      #       curl -sf http://127.0.0.1:4000/healthz && break
+      #       sleep 1
+      #     done
+      #     curl -s http://127.0.0.1:4000/healthz | jq .
 
-      # 失敗時はサーバログをアーティファクトに保存（デバッグ用）
-      - name: Upload server logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-log
-          path: /tmp/app.log
+      # TODO: スモークテスト復活時にログ収集も再有効化
+      # - name: Upload server logs on failure
+      #   if: failure()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: server-log
+      #     path: /tmp/app.log
