@@ -41,6 +41,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          if ! aws ecs describe-clusters \
+            --clusters "$ECS_CLUSTER" \
+            --region "$AWS_REGION" \
+            --query 'clusters[0].status' \
+            --output text 2>/dev/null | grep -q ACTIVE; then
+            echo "ECS cluster not found. Skip db:migrate."
+            exit 0
+          fi
+
           # jq を使う（GitHub-hosted runnerには入ってる）
           command -v jq >/dev/null 2>&1 || (echo "jq not found" && exit 1)
 
