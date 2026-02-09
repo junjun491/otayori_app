@@ -121,6 +121,17 @@ jobs:
           ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
           ECS_SERVICE: ${{ secrets.ECS_SERVICE_BACKEND }}
         run: |
+          set -euo pipefail
+
+          if ! aws ecs describe-clusters \
+            --clusters "$ECS_CLUSTER" \
+            --region "$AWS_REGION" \
+            --query 'clusters[0].status' \
+            --output text 2>/dev/null | grep -q ACTIVE; then
+            echo "ECS cluster not found. Skip update-service."
+            exit 0
+          fi
+
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" \
             --service "$ECS_SERVICE" \
