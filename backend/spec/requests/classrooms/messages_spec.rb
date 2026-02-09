@@ -8,7 +8,7 @@ RSpec.describe "Teachers::Messages API", type: :request do
   describe "GET /classrooms/:classroom_id/messages/:id" do
     it "returns 401 without auth" do
       msg = create(:message, classroom:)
-      get "/classrooms/#{classroom.id}/messages/#{msg.id}", headers: { 'Accept' => 'application/json' }
+      get "api/classrooms/#{classroom.id}/messages/#{msg.id}", headers: { 'Accept' => 'application/json' }
       expect(response).to have_http_status(:unauthorized).or have_http_status(:forbidden)
     end
 
@@ -18,7 +18,7 @@ RSpec.describe "Teachers::Messages API", type: :request do
       msg = create(:message, classroom:, status: :draft, target_all: true)
       msg.publish!(recipient_ids: nil)
 
-      get "/classrooms/#{classroom.id}/messages/#{msg.id}", headers: headers
+      get "api/classrooms/#{classroom.id}/messages/#{msg.id}", headers: headers
       expect(response).to have_http_status(:ok)
 
       json = JSON.parse(response.body)
@@ -32,7 +32,7 @@ RSpec.describe "Teachers::Messages API", type: :request do
   describe "POST /classrooms/:classroom_id/messages" do
     it "creates draft message" do
       params = { message: { title: "t", content: "c", target_all: true, status: "draft" } }
-      post "/classrooms/#{classroom.id}/messages", params:, headers: headers
+      post "api/classrooms/#{classroom.id}/messages", params:, headers: headers
       expect(response).to have_http_status(:created)
       data = JSON.parse(response.body).fetch("data")
       expect(data["status"]).to eq("draft")
@@ -43,7 +43,7 @@ RSpec.describe "Teachers::Messages API", type: :request do
       create(:student, classroom:)
       create(:student, classroom:)
       params = { message: { title: "t", content: "c", target_all: true, status: "published" } }
-      post "/classrooms/#{classroom.id}/messages", params:, headers: headers
+      post "api/classrooms/#{classroom.id}/messages", params:, headers: headers
       expect(response).to have_http_status(:created)
 
       data = JSON.parse(response.body).fetch("data")
@@ -59,7 +59,7 @@ RSpec.describe "Teachers::Messages API", type: :request do
       s2 = create(:student, classroom:)
       msg = create(:message, classroom:, status: :draft, target_all: true)
 
-      post "/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
+      post "api/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
            params: { message: { target_all: true } }, headers: headers
       expect(response).to have_http_status(:ok)
 
@@ -73,7 +73,7 @@ RSpec.describe "Teachers::Messages API", type: :request do
       s2 = create(:student, classroom:)
       msg = create(:message, classroom:, status: :draft, target_all: false)
 
-      post "/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
+      post "api/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
            params: { message: { target_all: false, recipient_ids: [ s1.id ] } }, headers: headers
       expect(response).to have_http_status(:ok)
 
@@ -83,9 +83,9 @@ RSpec.describe "Teachers::Messages API", type: :request do
 
     it "rejects double publish" do
       msg = create(:message, classroom:, status: :draft, target_all: true)
-      post "/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
+      post "api/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
            params: { message: { target_all: true } }, headers: headers
-      post "/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
+      post "api/classrooms/#{classroom.id}/messages/#{msg.id}/publish",
            params: { message: { target_all: true } }, headers: headers
       expect(response).to have_http_status(:unprocessable_entity)
     end
