@@ -44,10 +44,10 @@ BE --> DB[(RDS PostgreSQL)]
 
 詳細は以下に分離しています。
 
-- インフラ構成: `docs/infrastructure.md`
-- CI/CD: `docs/cicd.md`
-- ローカル開発: `docs/setup.md`
-- API通信設計: `docs/architecture.md`
+- [インフラ構成](docs/infrastructure.md)
+- [CI/CD](docs/cicd.md)
+- [ローカル開発](docs/setup.md)
+- [API通信設計](docs/architecture.md)
 
 ## このポートフォリオで意識したこと
 
