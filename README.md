@@ -47,7 +47,6 @@ BE --> DB[(RDS PostgreSQL)]
 - [インフラ構成](docs/infrastructure.md)
 - [CI/CD](docs/cicd.md)
 - [ローカル開発](docs/setup.md)
-- [API通信設計](docs/architecture.md)
 
 ## このポートフォリオで意識したこと
 
