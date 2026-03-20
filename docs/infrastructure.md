@@ -13,6 +13,7 @@
 ## アーキテクチャ
 
 ```mermaid
+flowchart LR
   U[User] -->|HTTPS| ALB
   ALB -->|/*| FE[Next.js]
   ALB -->|/api/*| BE[Rails API]

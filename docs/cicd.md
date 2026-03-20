@@ -5,6 +5,7 @@
 ## 構成
 
 ```mermaid
+flowchart LR
 Dev -->|push| GH[GitHub Actions]
 GH -->|OIDC| IAM[AWS IAM Role]
 GH -->|build| ECR
