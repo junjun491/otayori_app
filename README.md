@@ -15,14 +15,14 @@ GitHub Actions による CI/CD を構築しています。
 
 ## アーキテクチャ
 
-@@@
+```
 flowchart LR
 U[User] -->|HTTPS| ALB[ALB]
 ALB -->|/_| FE[ECS Fargate\nNext.js]
 ALB -->|/api/_| BE[ECS Fargate\nRails API]
 ALB -->|/healthz| BE
 BE --> DB[(RDS PostgreSQL)]
-@@@
+```
 
 ## 特徴（アピールポイント）
 
