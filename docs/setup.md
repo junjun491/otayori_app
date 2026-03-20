@@ -54,17 +54,21 @@ npm run dev
 
 ### ローカル
 
+```
 Browser
-↓
+  ↓
 Next.js（rewrites）
-↓
-└── /api/\* → Rails API
+  ↓
+└── /api/* → Rails API
+```
 
 ### 本番
 
+```
 Browser
-↓
+  ↓
 ALB
-↓
-├── / → Next.js
-└── /api/\* → Rails API
+  ↓
+├── /      → Next.js
+└── /api/* → Rails API
+```
