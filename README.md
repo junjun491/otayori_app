@@ -4,8 +4,6 @@
 Rails API + Next.js を AWS ECS/Fargate 上で運用し、Terraform による IaC と  
 GitHub Actions による CI/CD を構築しています。
 
----
-
 ## 技術スタック
 
 - Frontend: Next.js（App Router）
@@ -14,8 +12,6 @@ GitHub Actions による CI/CD を構築しています。
 - Infra: AWS（ECS/Fargate, ALB, RDS, ECR）
 - IaC: Terraform（S3 + DynamoDB による tfstate 管理）
 - CI/CD: GitHub Actions（OIDC）
-
----
 
 ## アーキテクチャ
 
@@ -28,8 +24,6 @@ ALB -->|/healthz| BE
 BE --> DB[(RDS PostgreSQL)]
 @@@
 
----
-
 ## 特徴（アピールポイント）
 
 - ALB を単一の公開入口として設計（Frontend / Backend の責務分離）
@@ -37,8 +31,6 @@ BE --> DB[(RDS PostgreSQL)]
 - OIDC による GitHub Actions → AWS 認証（長期クレデンシャル不使用）
 - ECS RunTask を用いた安全な DB migration 運用
 - `/healthz` によるアプリケーションの死活監視
-
----
 
 ## デモ操作
 
@@ -48,8 +40,6 @@ BE --> DB[(RDS PostgreSQL)]
 - 教師登録  
   http://localhost:3000/signup/teacher
 
----
-
 ## 詳細ドキュメント
 
 詳細は以下に分離しています。
@@ -58,8 +48,6 @@ BE --> DB[(RDS PostgreSQL)]
 - CI/CD: `docs/cicd.md`
 - ローカル開発: `docs/setup.md`
 - API通信設計: `docs/architecture.md`
-
----
 
 ## このポートフォリオで意識したこと
 
