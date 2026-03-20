@@ -4,6 +4,14 @@
 Rails API + Next.js を AWS ECS/Fargate 上で運用し、Terraform による IaC と  
 GitHub Actions による CI/CD を構築しています。
 
+## 特徴（アピールポイント）
+
+- ALB を単一の公開入口として設計（Frontend / Backend の責務分離）
+- Terraform による本番相当のインフラ構築（VPC / ECS / RDS / ALB）
+- OIDC による GitHub Actions → AWS 認証（長期クレデンシャル不使用）
+- ECS RunTask を用いた安全な DB migration 運用
+- `/healthz` によるアプリケーションの死活監視
+
 ## 技術スタック
 
 - Frontend: Next.js（App Router）
@@ -23,14 +31,6 @@ ALB -->|/api/_| BE[ECS Fargate\nRails API]
 ALB -->|/healthz| BE
 BE --> DB[(RDS PostgreSQL)]
 ```
-
-## 特徴（アピールポイント）
-
-- ALB を単一の公開入口として設計（Frontend / Backend の責務分離）
-- Terraform による本番相当のインフラ構築（VPC / ECS / RDS / ALB）
-- OIDC による GitHub Actions → AWS 認証（長期クレデンシャル不使用）
-- ECS RunTask を用いた安全な DB migration 運用
-- `/healthz` によるアプリケーションの死活監視
 
 ## デモ操作
 
