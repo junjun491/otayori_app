@@ -46,7 +46,7 @@ BE --> DB[(RDS PostgreSQL)]
 
 - [インフラ構成](docs/infrastructure.md)
 - [CI/CD](docs/cicd.md)
-- [環境変数](docs/environment.md)
+- [環境変数 / 外部サービス](docs/environment.md)
 - [ローカル開発](docs/local_setup.md)
 - [AWS開発](docs/local_setup.md)
 
