@@ -15,8 +15,7 @@ GitHub Actions による CI/CD を構築しています。
 
 ## アーキテクチャ
 
-```
-flowchart LR
+```mermaid
 U[User] -->|HTTPS| ALB[ALB]
 ALB -->|/_| FE[ECS Fargate\nNext.js]
 ALB -->|/api/_| BE[ECS Fargate\nRails API]
